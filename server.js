@@ -1,5 +1,3 @@
-
-
 const net = require("net");
 const fs = require("fs");
 const ip = require("ip");
@@ -11,7 +9,7 @@ const WebSocket = require("ws");
 
 let latestTrackingData = { message: "No data received yet" };
 
-// Helper to parse the tracking message
+// Updated Parsing Function (No Duplicate Fields)
 function parseTrackingMessage(message) {
   message = message.trim();
   if (message.startsWith("^")) message = message.slice(1);
@@ -20,17 +18,40 @@ function parseTrackingMessage(message) {
   const parts = message.split("|");
 
   return {
-    head: parts[0],
-    latitude: parseFloat(parts[1]),
-    address: parts[2],
-    longitude: parseFloat(parts[3]),
-    mileage: parseInt(parts[4], 10),
-    locationTime: parts[5],
-    speed: parseInt(parts[6], 10),
-    status: parts[7],
-    driverAuth: parts[8],
-    driverName: parts[9],
-    plate: parts[10],
+    Plate: parts[0],
+    Speed: parseInt(parts[1], 10),
+    Latitude: parseFloat(parts[2]),
+    Longitude: parseFloat(parts[3]),
+    LocTime: parts[4],
+    Quality: parts[5],
+    Mileage: parseInt(parts[6], 10),
+    Pocsagstr: parts[7],
+    Head: parts[8],
+    Geozone: parts[9],
+    DriverName: parts[10],
+    NameEvent: parts[11],
+    Temperature: parts[12],
+    Address: parts[13],
+    Statuses: parts[14],
+    Rules: parts[15],
+    LimMsg: parts[16],
+    CustomerDriverID: parts[17],
+    PlatformName: parts[18],
+    EcmCode: parts[19],
+    DriverAuthentication: parts[20],
+    PlatformId: parts[21],
+    UserId: parts[22],
+    UserName: parts[23],
+    CustomerId: parts[24],
+    UAID: parts[25],
+    UtcNowTime: parts[26],
+    EngineState: parts[27],
+    GeoAreaCircle: parts[28],
+    GeoAreaPolygon: parts[29],
+    GeoAreaRout: parts[30],
+    EcmCategory: parts[31],
+    EcmName: parts[32],
+    DriverCode: parts[33], // Last unique field
   };
 }
 
@@ -58,7 +79,7 @@ const wss = new WebSocket.Server({ server: httpServer });
 
 // Configuration
 const PORT = process.env.PORT || 9000;
-const LOG_FILE = "raw_data.log"; // Changed log file name
+const LOG_FILE = "raw_data.log";
 const ALLOWED_IPS = [
   process.env.ALLOWED_IP1 || "81.218.55.66",
   process.env.ALLOWED_IP2 || "212.150.50.68",
@@ -71,10 +92,8 @@ const ALLOWED_IPS = [
   "41.157.41.148",
   "10.2.1.0/24",
   "198.54.173.198",
-  // "41.193.55.121",
 ];
 
-// Create servers
 const server = net.createServer();
 const app = express();
 
@@ -93,7 +112,7 @@ server.on("connection", (socket) => {
     const raw = data.toString();
     try {
       const parsed = parseTrackingMessage(raw);
-      latestTrackingData = parsed; // update the global variable
+      latestTrackingData = parsed;
 
       console.log("🧾 Parsed Message:", parsed);
 
@@ -134,77 +153,23 @@ server.on("connection", (socket) => {
 
   let buffer = "";
 
-  // socket.on("data", (data) => {
-  //   try {
-  //     buffer += data.toString("utf8");
-
-  //     // Log ALL raw data as-is
-  //     fs.appendFileSync(
-  //       LOG_FILE,
-  //       `[${new Date().toISOString()}] [${clientIp}] RAW DATA: ${data.toString(
-  //         "utf8"
-  //       )}\n`
-  //     );
-
-  //     logToConsole(
-  //       "data",
-  //       Raw data from ${clientIp}: ${data.toString("utf8")}
-  //     );
-
-  //     // Optional: Keep message boundary detection if needed
-  //     while (buffer.includes("^")) {
-  //       const startIdx = buffer.indexOf("^");
-  //       const endIdx = buffer.indexOf("^", startIdx + 1);
-
-  //       if (endIdx === -1) break;
-
-  //       const message = buffer.substring(startIdx + 1, endIdx);
-  //       buffer = buffer.substring(endIdx + 1);
-
-  //       if (message.trim()) {
-  //         fs.appendFileSync(
-  //           LOG_FILE,
-  //           [${new Date().toISOString()}] [${clientIp}] COMPLETE MESSAGE: ${message}\n
-  //         );
-  //       }
-  //     }
-  //   } catch (err) {
-  //     logToConsole("error", Data logging error: ${err.message});
-  //   }
-  // });
-
   socket.on("end", () => {
     logToConsole("connection", `Client disconnected: ${clientIp}`);
   });
 });
 
-// // HTTP API to view raw logs
-// app.get("/", (req, res) => {
-//   try {
-//     const logs = fs.readFileSync(LOG_FILE, "utf8");
-//     res.type("text/plain").send(logs);
-//   } catch (err) {
-//     logToConsole("error", API error: ${err.message});
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
-
-// Start servers
 server.listen(PORT, "0.0.0.0", () => {
   logToConsole("info", `TCP server started on port ${PORT}`);
   logToConsole("info", `Allowed IPs: ${ALLOWED_IPS.join(", ")}`);
 });
 
-
-
 httpServer.listen(8000, () => {
-  console.log('🌐 Web dashboard + API on http://localhost:8000');
+  console.log("🌐 Web dashboard + API on http://localhost:8000");
   app.listen(3000, () => {
-  logToConsole("info", "HTTP server started on port 3000");
+    logToConsole("info", "HTTP server started on port 3000");
+  });
 });
-})
 
-// Graceful shutdown
 process.on("SIGINT", () => {
   logToConsole("info", "\nShutting down servers...");
   server.close(() => process.exit(0));
