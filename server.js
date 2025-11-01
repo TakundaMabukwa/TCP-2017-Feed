@@ -11,8 +11,8 @@ const {
   alliedSteelPort,
   alliedSteelHttpServer,
 } = require("./routes/alliedSteel");
-const { fidelityServer, fidelityPort, fidelityHttpServer } = require("./routes/fidelity");
-const { epsServer, epsPort, epsHttpServer } = require("./routes/eps");
+// const { fidelityServer, fidelityPort, fidelityHttpServer } = require("./routes/fidelity");
+// const { epsServer, epsPort, epsHttpServer } = require("./routes/eps");
 
 // -----------------
 // tcp servers
@@ -25,22 +25,22 @@ macSteelServer.listen(macSteelPort, () => {
 });
 
 // tcp server - allied
-alliedSteelServer.listen(alliedSteelPort, () => {
-  logToConsole("info", `Allied Steel TCP server started on port ${alliedSteelPort}`);
-  logToConsole("info", `Allowed IPs: ${ALLOWED_IPS.join(", ")}`);
-});
+// alliedSteelServer.listen(alliedSteelPort, () => {
+//   logToConsole("info", `Allied Steel TCP server started on port ${alliedSteelPort}`);
+//   logToConsole("info", `Allowed IPs: ${ALLOWED_IPS.join(", ")}`);
+// });
 
 // tcp server - fidelity
-fidelityServer.listen(fidelityPort, () => {
-  logToConsole("info", `Fidelity TCP server started on port ${fidelityPort}`);
-  logToConsole("info", `Allowed IPs: ${ALLOWED_IPS.join(", ")}`);
-});
+// fidelityServer.listen(fidelityPort, () => {
+//   logToConsole("info", `Fidelity TCP server started on port ${fidelityPort}`);
+//   logToConsole("info", `Allowed IPs: ${ALLOWED_IPS.join(", ")}`);
+// });
 
 // tcp server - eps
-epsServer.listen(epsPort, () => {
-  logToConsole("info", `EPS TCP server started on port ${epsPort}`);
-  logToConsole("info", `Allowed IPs: ${ALLOWED_IPS.join(", ")}`);
-});
+// epsServer.listen(epsPort, () => {
+//   logToConsole("info", `EPS TCP server started on port ${epsPort}`);
+//   logToConsole("info", `Allowed IPs: ${ALLOWED_IPS.join(", ")}`);
+// });
 
 
 
@@ -50,22 +50,22 @@ epsServer.listen(epsPort, () => {
 // http servers
 // -----------------
 
-//websocket server for mac steel
+// websocket server for mac steel
 macSteelHttpServer.listen(8000, () => {
   console.log("🌐 Web dashboard + API on http://localhost:8000");
 });
 
 // WebSocket server for allied steel
-alliedSteelHttpServer.listen(8001, () => {
-  console.log("🌐 Web dashboard + API on http://localhost:8001");
-});
+// alliedSteelHttpServer.listen(8001, () => {
+//   console.log("🌐 Web dashboard + API on http://localhost:8001");
+// });
 
-//websocket server for fidelity
-fidelityHttpServer.listen(8002, () => {
-  console.log("🌐 Web dashboard + API on http://localhost:8002");
-});
+// //websocket server for fidelity
+// fidelityHttpServer.listen(8002, () => {
+//   console.log("🌐 Web dashboard + API on http://localhost:8002");
+// });
 
 //websocket server for eps
-epsHttpServer.listen(8003, () => {
-  console.log("🌐 Web dashboard + API on http://localhost:8003");
-});
+// epsHttpServer.listen(8003, () => {
+//   console.log("🌐 Web dashboard + API on http://localhost:8003");
+// });

@@ -4,11 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npm-run-all --parallel test:1 test:2 test:3",
+    "test": "npm-run-all --parallel test:1 test:2 test:3",
     "test:1": "node test.js",
     "test:2": "node test2.js",
-    "test:3": "node test3.js"
+    "test:3": "node test3.js",
+    "dev": "nodemon server.js",
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",

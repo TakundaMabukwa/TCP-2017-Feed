@@ -12,10 +12,27 @@ const { parseTrackingMessage } = require("../helpers/parse-tracking-message");
 // import { logToConsole } from "../helpers/logger";
 
 const macSteelPort = process.env.MACSTEELPORT || 9000;
+let latestTrackingData = null;
 
 const macSteelServer = net.createServer((socket) => {
-  const clientIp = socket.remoteAddress.replace(/^.*:/, "");
+  let clientIp = socket.remoteAddress;
+  if (clientIp === '::1') {
+    clientIp = '127.0.0.1';
+  } else if (clientIp.startsWith('::ffff:')) {
+    clientIp = clientIp.replace('::ffff:', '');
+  } else if (clientIp.includes(':') && !clientIp.includes('.')) {
+    // Pure IPv6 - keep as is
+  }
   logToConsole("macSteel","connection", `New connection from ${clientIp}`);
+
+  // Check IP first
+  if (!ALLOWED_IPS.includes(clientIp)) {
+    logToConsole("macSteel","warning", `Blocked connection from ${clientIp}`);
+    socket.destroy();
+    return;
+  }
+
+  logToConsole("macSteel","connection", `Established connection with ${clientIp}`);
 
   socket.on("data", (data) => {
     const raw = data.toString();
@@ -25,6 +42,9 @@ const macSteelServer = net.createServer((socket) => {
 
       logToConsole("macSteel","info", `Parsed Message: ${JSON.stringify(parsed)}`);
 
+      // Send acknowledgment
+      socket.write("OK");
+
       // Broadcast to WebSocket clients
       macSteelwss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
@@ -33,32 +53,15 @@ const macSteelServer = net.createServer((socket) => {
       });
     } catch (err) {
       logToConsole("macSteel","error", `Failed to parse message: ${err.message}`);
+      socket.write("ERROR");
     }
   });
 
-  socket.on("end", () => {
-    console.log("❌ TCP Client disconnected");
-  });
-
-  const handleError = (err) => {
+  socket.on("error", (err) => {
     if (err.code !== "ECONNRESET") {
-      logToConsole("macSteel",
-        "error",
-        `Connection error from ${clientIp}: ${err.message}`
-      );
+      logToConsole("macSteel","error", `Connection error from ${clientIp}: ${err.message}`);
     }
-    socket.destroy();
-  };
-
-  socket.once("error", handleError);
-
-  if (!ALLOWED_IPS.includes(clientIp)) {
-    logToConsole("macSteel","warning", `Blocked connection from ${clientIp}`);
-    socket.destroy();
-    return;
-  }
-
-  logToConsole("macSteel","connection", `Established connection with ${clientIp}`);
+  });
 
   socket.on("end", () => {
     logToConsole("macSteel","connection", `Client disconnected: ${clientIp}`);

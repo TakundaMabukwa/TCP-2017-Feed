@@ -1,46 +1,61 @@
+// Simplified parser for single or multiple vehicle records
 function parseTrackingMessage(message) {
   message = message.trim();
   if (message.startsWith("^")) message = message.slice(1);
   if (message.endsWith("^")) message = message.slice(0, -1);
 
-  const parts = message.split("|");
+  // Check if this is a multi-vehicle message
+  if (message.includes('^\n^')) {
+    // Multiple vehicles - split and parse each one
+    const vehicleRecords = message.split('^\n^');
+    const vehicles = [];
 
-  return {
-    Plate: parts[0],
-    Speed: parseInt(parts[1], 10),
-    Latitude: parseFloat(parts[2]),
-    Longitude: parseFloat(parts[3]),
-    LocTime: parts[4],
-    Quality: parts[5],
-    Mileage: parseInt(parts[6], 10),
-    Pocsagstr: parts[7],
-    Head: parts[8],
-    Geozone: parts[9],
-    DriverName: parts[10],
-    NameEvent: parts[11],
-    Temperature: parts[12],
-    Address: parts[13],
-    Statuses: parts[14],
-    Rules: parts[15],
-    LimMsg: parts[16],
-    CustomerDriverID: parts[17],
-    PlatformName: parts[18],
-    EcmCode: parts[19],
-    DriverAuthentication: parts[20],
-    PlatformId: parts[21],
-    UserId: parts[22],
-    UserName: parts[23],
-    CustomerId: parts[24],
-    UAID: parts[25],
-    UtcNowTime: parts[26],
-    EngineState: parts[27],
-    GeoAreaCircle: parts[28],
-    GeoAreaPolygon: parts[29],
-    GeoAreaRout: parts[30],
-    EcmCategory: parts[31],
-    EcmName: parts[32],
-    DriverCode: parts[33], // Last unique field
+    for (const record of vehicleRecords) {
+      if (record.trim()) {
+        try {
+          const parsed = parseSingleVehicleRecord(record);
+          vehicles.push(parsed);
+        } catch (error) {
+          console.log(`Failed to parse vehicle record: ${record.substring(0, 50)}...`);
+        }
+      }
+    }
+
+    return vehicles; // Return array of vehicle objects
+  } else {
+    // Single vehicle
+    return parseSingleVehicleRecord(message);
+  }
+}
+
+// Parse a single vehicle record
+function parseSingleVehicleRecord(record) {
+  const parts = record.split("|");
+
+  const result = {
+    Plate: parts[0] || '',
+    Speed: parseInt(parts[1], 10) || 0,
+    Latitude: parseFloat(parts[2]) || 0,
+    Longitude: parseFloat(parts[3]) || 0,
+    LocTime: parts[4] || '',
+    Mileage: parseInt(parts[5], 10) || 0,
+    IP: parts[6] || '',
+    Quality: parts[7] || '',
+    Geozone: parts[8] || '',
+    DriverName: parts[9] || '',
+    Address: parts[10] || '',
+    Statuses: parts[11] || '',
+    Rules: parts[12] || '',
+    CustomerDriverID: parts[13] || '',
+    PlatformName: parts[14] || ''
   };
+
+  // Parse statuses if present
+  if (result.Statuses) {
+    result.StatusDetails = result.Statuses.split('~').map(status => status.trim());
+  }
+
+  return result;
 }
 
 module.exports = { parseTrackingMessage };
