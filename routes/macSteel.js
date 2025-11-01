@@ -9,6 +9,7 @@ const WebSocket = require("ws");
 const { logToConsole } = require("../helpers/logger");
 const { ALLOWED_IPS } = require("../helpers/allowed-ips");
 const { parseTrackingMessage } = require("../helpers/parse-tracking-message");
+const { isValveOpen } = require("../helpers/tcp-valve");
 // import { logToConsole } from "../helpers/logger";
 
 const macSteelPort = process.env.MACSTEELPORT || 9000;
@@ -25,7 +26,14 @@ const macSteelServer = net.createServer((socket) => {
   }
   logToConsole("macSteel","connection", `New connection from ${clientIp}`);
 
-  // Check IP first
+  // Check valve first
+  if (!isValveOpen()) {
+    logToConsole("macSteel","warning", `TCP valve closed - rejecting connection from ${clientIp}`);
+    socket.destroy();
+    return;
+  }
+
+  // Check IP
   if (!ALLOWED_IPS.includes(clientIp)) {
     logToConsole("macSteel","warning", `Blocked connection from ${clientIp}`);
     socket.destroy();
