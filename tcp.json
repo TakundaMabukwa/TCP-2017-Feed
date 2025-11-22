@@ -1,0 +1,37 @@
+[
+  {
+    "Plate": "DY70FBGP",
+    "Speed": 0,
+    "Latitude": -26.306823,
+    "Longitude": 28.140028,
+    "LocTime": "2025-11-22 20:40:30",
+    "Mileage": 360855,
+    "IP": "60.42.2.193",
+    "Quality": "",
+    "Geozone": "19,407,9952,BE,28F5,54,00,245,00058197,6E,3C,255,00,5B,00,1088,14",
+    "DriverName": "DY70FBGP",
+    "Address": "Steelrode",
+    "Statuses": "Driver 21335",
+    "Rules": "",
+    "CustomerDriverID": "",
+    "PlatformName": "",
+    "StatusDetails": ["Driver 21335"]
+  },
+  {
+    "Plate": "LYTTELTON",
+    "Speed": 0,
+    "Latitude": -25.82846,
+    "Longitude": 28.20575,
+    "LocTime": "2025-11-22 20:40:32",
+    "Mileage": 759,
+    "IP": "61.173.2.156",
+    "Quality": "",
+    "Geozone": "",
+    "DriverName": "KFC LYTTELTON (MTN SIM)",
+    "Address": "",
+    "Statuses": "",
+    "Rules": "",
+    "CustomerDriverID": "",
+    "PlatformName": ""
+  }
+]

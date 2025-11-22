@@ -58,4 +58,70 @@ function parseSingleVehicleRecord(record) {
   return result;
 }
 
-module.exports = { parseMacSteelFeedSimple };
+// Enhanced MacSteel parser for detailed format with comprehensive geozone information
+function parseEnhancedMacSteelFeed(message) {
+  message = message.trim();
+  if (message.startsWith("^")) message = message.slice(1);
+  if (message.endsWith("^")) message = message.slice(0, -1);
+
+  const parts = message.split("|");
+
+  const result = {
+    Plate: parts[0] || '',
+    Speed: parseInt(parts[1], 10) || 0,
+    Latitude: parseFloat(parts[2]) || 0,
+    Longitude: parseFloat(parts[3]) || 0,
+    LocTime: parts[4] || '',
+    Mileage: parseInt(parts[5], 10) || 0,
+    IP: parts[6] || '',
+    Quality: parts[7] || '',
+    Geozone: parts[8] || '',
+    DriverName: parts[9] || '',
+    Address: parts[10] || '',
+    Statuses: parts[11] || '',
+    Rules: parts[12] || '',
+    CustomerDriverID: parts[13] || '',
+    PlatformName: parts[14] || '',
+    EcmCode: parts[15] || '',
+    DriverAuthentication: parts[16] || '',
+    PlatformId: parts[17] || '',
+    UserId: parts[18] || '',
+    UserName: parts[19] || '',
+    CustomerId: parts[20] || '',
+    UAID: parts[21] || '',
+    UtcNowTime: parts[22] || '',
+    EngineState: parts[23] || '',
+    GeoAreaCircle: parts[24] || '',
+    GeoAreaPolygon: parts[25] || '',
+    GeoAreaRout: parts[26] || '',
+    EcmCategory: parts[27] || '',
+    EcmName: parts[28] || '',
+    DriverCode: parts[29] || ''
+  };
+
+  if (result.Geozone) {
+    const geozoneParts = result.Geozone.split(', ');
+    result.GeozoneDetails = {
+      primary: geozoneParts[0] || '',
+      secondary: geozoneParts[1] || '',
+      distributionArea: geozoneParts[2] || '',
+      overlays: geozoneParts.filter(part => part.includes('OVERLAY')),
+      regions: geozoneParts.filter(part => part.startsWith('GAU-')),
+      companies: geozoneParts.filter(part => part.includes('Macsteel')),
+      all: geozoneParts
+    };
+  }
+
+  if (result.Statuses) {
+    result.StatusDetails = result.Statuses.split('~').map(status => status.trim());
+  }
+
+  result.parseMethod = 'Enhanced MacSteel format';
+  result.timestamp = new Date().toISOString();
+  result.rawMessage = message;
+  result.fieldCount = parts.length;
+
+  return result;
+}
+
+module.exports = { parseMacSteelFeedSimple, parseEnhancedMacSteelFeed };
