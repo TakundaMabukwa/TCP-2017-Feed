@@ -8,7 +8,7 @@ const http = require("http");
 const WebSocket = require("ws");
 const { logToConsole } = require("../helpers/logger");
 const { ALLOWED_IPS } = require("../helpers/allowed-ips");
-const { parseEPSFeed } = require("../helpers/parse-tracking-message");
+
 const { isValveOpen } = require("../helpers/tcp-valve");
 // import { logToConsole } from "../helpers/logger";
 
@@ -44,25 +44,19 @@ const macSteelServer = net.createServer((socket) => {
 
   socket.on("data", (data) => {
     const raw = data.toString();
-    try {
-      const parsed = parseEPSFeed(raw);
-      latestTrackingData = parsed;
+    latestTrackingData = raw;
 
-      logToConsole("macSteel","info", `Parsed Message: ${JSON.stringify(parsed)}`);
+    logToConsole("macSteel","info", `Raw Message: ${raw}`);
 
-      // Send acknowledgment
-      socket.write("OK");
+    // Send acknowledgment
+    socket.write("OK");
 
-      // Broadcast to WebSocket clients
-      macSteelwss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(parsed));
-        }
-      });
-    } catch (err) {
-      logToConsole("macSteel","error", `Failed to parse message: ${err.message}`);
-      socket.write("ERROR");
-    }
+    // Broadcast to WebSocket clients
+    macSteelwss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(raw);
+      }
+    });
   });
 
   socket.on("error", (err) => {
