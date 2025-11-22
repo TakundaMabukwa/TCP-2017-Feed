@@ -124,4 +124,112 @@ function parseEnhancedMacSteelFeed(message) {
   return result;
 }
 
-module.exports = { parseMacSteelFeedSimple, parseEnhancedMacSteelFeed };
+// Custom EPS parser with field mappings and fuel data conversion
+function parseEPSFeed(message) {
+  message = message.trim();
+  if (message.startsWith("^")) message = message.slice(1);
+  if (message.endsWith("^")) message = message.slice(0, -1);
+
+  const parts = message.split("|");
+  
+  if (parts.length < 10) {
+    console.log('⚠️ Warning: Not enough parts in EPS data, expected at least 10, got:', parts.length);
+    return {
+      Plate: 'UNKNOWN',
+      Speed: 0,
+      Latitude: 0,
+      Longitude: 0,
+      LocTime: new Date().toISOString(),
+      Quality: '',
+      Mileage: 0,
+      Pocsagstr: '',
+      Head: '',
+      Geozone: '',
+      DriverName: 'UNKNOWN',
+      NameEvent: '',
+      Temperature: '',
+      Address: '',
+      Statuses: '',
+      Rules: '',
+      parseMethod: 'EPS custom field mapping - INVALID DATA',
+      timestamp: new Date().toISOString(),
+      rawMessage: message,
+      fieldCount: parts.length
+    };
+  }
+
+  const mappedResult = {
+    Plate: parts[0] || 'UNKNOWN',
+    Speed: parseInt(parts[1], 10) || 0,
+    Latitude: parseFloat(parts[2]) || 0,
+    Longitude: parseFloat(parts[3]) || 0,
+    LocTime: parts[4] || '',
+    Quality: '',
+    Mileage: parseInt(parts[5], 10) || 0,
+    Pocsagstr: parts[6] || '',
+    Head: parts[7] || '',
+    Geozone: parts[8] || '',
+    DriverName: parts[9] || 'UNKNOWN',
+    NameEvent: parts[11] || '',
+    Temperature: parts[12] || '',
+    Address: parts[10] || '',
+    Statuses: parts[14] || '',
+    Rules: parts[15] || '',
+    IP: parts[6] || ''
+  };
+
+  console.log(`🔍 EPS Message parts count: ${parts.length}`);
+  console.log(`🔍 EPS Message parts[13]: ${parts[13]}`);
+  console.log(`🔍 EPS Message last part: ${parts[parts.length - 1]}`);
+  
+  let hexFuelData = null;
+  let fuelDataPosition = -1;
+  
+  const positionsToCheck = [13, 12, parts.length - 1];
+  for (const pos of positionsToCheck) {
+    if (parts[pos] && parts[pos].includes(',') && parts[pos].split(',').length >= 10) {
+      hexFuelData = parts[pos];
+      fuelDataPosition = pos;
+      break;
+    }
+  }
+  
+  if (hexFuelData && hexFuelData.trim() !== '') {
+    console.log(`🔍 EPS Fuel data found at position ${fuelDataPosition}: ${hexFuelData}`);
+    const fuelData = parseEPSFuelData(hexFuelData);
+    if (fuelData) {
+      mappedResult.fuel_level = fuelData.fuel_level;
+      mappedResult.fuel_volume = fuelData.fuel_volume;
+      mappedResult.fuel_temperature = fuelData.fuel_temperature;
+    }
+  }
+
+  mappedResult.parseMethod = 'EPS custom field mapping';
+  mappedResult.timestamp = new Date().toISOString();
+  mappedResult.rawMessage = message;
+  mappedResult.fieldCount = parts.length;
+
+  return mappedResult;
+}
+
+function parseEPSFuelData(hexString) {
+  try {
+    const parts = hexString.split(',');
+    if (parts.length < 10) return null;
+
+    const fuel_level = parseInt(parts[0], 16) || 0;
+    const fuel_volume = parseInt(parts[1], 16) || 0;
+    const fuel_temperature = parseInt(parts[2], 16) || 0;
+
+    return {
+      fuel_level,
+      fuel_volume,
+      fuel_temperature
+    };
+  } catch (error) {
+    console.log('Error parsing EPS fuel data:', error.message);
+    return null;
+  }
+}
+
+module.exports = { parseMacSteelFeedSimple, parseEnhancedMacSteelFeed, parseEPSFeed };

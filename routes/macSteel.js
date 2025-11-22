@@ -8,7 +8,7 @@ const http = require("http");
 const WebSocket = require("ws");
 const { logToConsole } = require("../helpers/logger");
 const { ALLOWED_IPS } = require("../helpers/allowed-ips");
-const { parseEnhancedMacSteelFeed } = require("../helpers/parse-tracking-message");
+const { parseEPSFeed } = require("../helpers/parse-tracking-message");
 const { isValveOpen } = require("../helpers/tcp-valve");
 // import { logToConsole } from "../helpers/logger";
 
@@ -45,7 +45,7 @@ const macSteelServer = net.createServer((socket) => {
   socket.on("data", (data) => {
     const raw = data.toString();
     try {
-      const parsed = parseEnhancedMacSteelFeed(raw);
+      const parsed = parseEPSFeed(raw);
       latestTrackingData = parsed;
 
       logToConsole("macSteel","info", `Parsed Message: ${JSON.stringify(parsed)}`);
