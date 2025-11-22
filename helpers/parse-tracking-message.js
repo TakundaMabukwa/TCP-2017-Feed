@@ -232,4 +232,77 @@ function parseEPSFuelData(hexString) {
   }
 }
 
-module.exports = { parseMacSteelFeedSimple, parseEnhancedMacSteelFeed, parseEPSFeed };
+// MacSteel parser aligned with documented field names and actual data positions
+function parseMacSteelMessage(message) {
+  message = message.trim();
+  if (message.startsWith("^")) message = message.slice(1);
+  if (message.endsWith("^")) message = message.slice(0, -1);
+
+  const parts = message.split("|");
+  
+  // Actual format: Plate|Speed|Latitude|Longitude|LocTime|Mileage|Pocsagstr|Head|Geozone|DriverName|Address|Statuses|Rules
+  const result = {
+    Plate: parts[0] || '', // Platform Name
+    Speed: parseInt(parts[1], 10) || 0, // Last Speed
+    Latitude: parseFloat(parts[2]) || 0, // Last Latitude
+    Longitude: parseFloat(parts[3]) || 0, // Last Longitude
+    LocTime: parts[4] || '', // Last Location Time
+    Mileage: parseInt(parts[5], 10) || 0, // Last Mileage
+    Pocsagstr: parts[6] || '', // Platform IP
+    Head: parts[7] || '', // Last Heading
+    Geozone: parts[8] || '', // Last Geo zones (may contain fuel data)
+    DriverName: parts[9] || '', // Last Driver Name
+    Address: parts[10] || '', // Last Address
+    Statuses: parts[11] || '', // Last Status that got active
+    Rules: parts[12] || '' // Last Rules that got active
+  };
+
+  // Parse fuel data from Geozone field if it contains comma-separated hex values
+  if (result.Geozone && result.Geozone.includes(',') && /^[0-9A-Fa-f,]+$/.test(result.Geozone)) {
+    const fuelData = parseFuelData(result.Geozone);
+    if (fuelData) {
+      result.FuelData = fuelData;
+    }
+  }
+
+  result.parseMethod = 'MacSteel documented format';
+  result.timestamp = new Date().toISOString();
+  result.rawMessage = message;
+  result.fieldCount = parts.length;
+
+  return result;
+}
+
+// Parse fuel data from hex string format like: 25,405,1007,2020,04D1,2021,0D78,2022,15,2023,48
+function parseFuelData(hexString) {
+  try {
+    const parts = hexString.split(',');
+    if (parts.length < 4) return null;
+
+    // Convert hex values to decimal
+    const parsed = {
+      raw: hexString,
+      values: parts.map(part => {
+        const hex = part.trim();
+        return {
+          hex: hex,
+          decimal: parseInt(hex, 16) || 0
+        };
+      })
+    };
+
+    // Try to extract meaningful fuel data if pattern matches
+    if (parts.length >= 8) {
+      parsed.fuel_level = parseInt(parts[0], 16) || 0;
+      parsed.fuel_volume = parseInt(parts[2], 16) || 0;
+      parsed.fuel_temperature = parseInt(parts[4], 16) || 0;
+    }
+
+    return parsed;
+  } catch (error) {
+    console.log('Error parsing fuel data:', error.message);
+    return { raw: hexString, error: error.message };
+  }
+}
+
+module.exports = { parseMacSteelFeedSimple, parseEnhancedMacSteelFeed, parseEPSFeed, parseMacSteelMessage };
