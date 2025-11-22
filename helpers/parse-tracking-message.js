@@ -1,5 +1,5 @@
 // Simplified parser for single or multiple vehicle records
-function parseTrackingMessage(message) {
+function parseMacSteelFeedSimple(message) {
   message = message.trim();
   if (message.startsWith("^")) message = message.slice(1);
   if (message.endsWith("^")) message = message.slice(0, -1);
@@ -58,4 +58,4 @@ function parseSingleVehicleRecord(record) {
   return result;
 }
 
-module.exports = { parseTrackingMessage };
+module.exports = { parseMacSteelFeedSimple };
