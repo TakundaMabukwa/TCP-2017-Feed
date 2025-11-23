@@ -13,6 +13,7 @@ const ALLOWED_IPS = [
   process.env.ALLOWED_IP_SUBNET,
   process.env.ALLOWED_IP7,
   process.env.ALLOWED_IP_BRIAN,
+  process.env.ALLOWED_IP8,
 ].filter(Boolean);
 
 module.exports = { ALLOWED_IPS };

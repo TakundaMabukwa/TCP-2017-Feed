@@ -1,5 +1,5 @@
-// MacSteel parser using standard format: plate|speed|latitude|longitude|locTime|mileage|pocsagstr|status|geozone|fuel_data|item_installed|driver_name
-function parseMacSteelMessage(message) {
+// Combined parser using standard format: plate|speed|latitude|longitude|locTime|mileage|pocsagstr|status|geozone|fuel_data|item_installed|driver_name
+function parseCombinedFeedMessage(message) {
   message = message.trim();
   if (message.startsWith("^")) message = message.slice(1);
   if (message.endsWith("^")) message = message.slice(0, -1);
@@ -43,4 +43,4 @@ function parseSingleVehicle(record) {
   };
 }
 
-module.exports = { parseMacSteelMessage };
+module.exports = { parseCombinedFeedMessage };
