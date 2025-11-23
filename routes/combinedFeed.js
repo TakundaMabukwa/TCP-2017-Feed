@@ -46,7 +46,7 @@ const combinedFeedServer = net.createServer((socket) => {
   socket.on("data", (data) => {
     const raw = data.toString();
     try {
-      const parsed = parsecombinedFeedMessage(raw);
+      const parsed = parseCombinedFeedMessage(raw);
       latestTrackingData = parsed;
 
       logToConsole("combinedFeed","info", `Parsed Message: ${JSON.stringify(parsed)}`);
