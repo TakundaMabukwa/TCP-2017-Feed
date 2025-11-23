@@ -271,7 +271,9 @@ function parseSingleVehicle(record) {
     Geozone: parts[8] || '',
     FuelData: parts[9] || '',
     ItemInstalled: parts[10] || '',
-    DriverName: parts[11] || ''
+    DriverName: parts[11] || '',
+    rawMessage: record,
+    fieldCount: parts.length
   };
 }
 
