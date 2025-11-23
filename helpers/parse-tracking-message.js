@@ -232,69 +232,47 @@ function parseEPSFuelData(hexString) {
   }
 }
 
-// Enhanced MacSteel parser based on EPS structure with documented field mapping
+// MacSteel parser using standard format: plate|speed|latitude|longitude|locTime|mileage|pocsagstr|status|geozone|fuel_data|item_installed|driver_name
 function parseMacSteelMessage(message) {
   message = message.trim();
   if (message.startsWith("^")) message = message.slice(1);
   if (message.endsWith("^")) message = message.slice(0, -1);
 
-  const parts = message.split("|");
-  
-  // Documented format: Plate|Speed|Latitude|Longitude|LocTime|Mileage|Pocsagstr|Head|Geozone|DriverName|Address|Statuses|Rules
-  const result = {
-    Plate: parts[0] || '', // Platform Name
-    Speed: parseInt(parts[1], 10) || 0, // Last Speed
-    Latitude: parseFloat(parts[2]) || 0, // Last Latitude
-    Longitude: parseFloat(parts[3]) || 0, // Last Longitude
-    LocTime: parts[4] || '', // Last Location Time
-    Mileage: parseInt(parts[5], 10) || 0, // Last Mileage
-    Pocsagstr: parts[6] || '', // Platform IP
-    Head: parts[7] || '', // Last Heading
-    Geozone: parts[8] || '', // Last Geo zones
-    DriverName: parts[9] || '', // Last Driver Name
-    Address: parts[10] || '', // Last Address
-    Statuses: parts[11] || '', // Last Status that got active
-    Rules: parts[12] || '', // Last Rules that got active
-    DriverAuthentication: parts[13] || '' // Last driver code id
-  };
+  // Check for multiple vehicles separated by ^\n^
+  if (message.includes('^\n^')) {
+    const vehicleRecords = message.split('^\n^');
+    const vehicles = [];
 
-  console.log(`🔍 MacSteel Message parts count: ${parts.length}`);
-  console.log(`🔍 MacSteel Geozone: ${result.Geozone}`);
-  
-  // Enhanced geozone processing
-  if (result.Geozone && result.Geozone.trim() !== '') {
-    // Check if it's hex fuel data (like: 25,405,1007,2020,04D1,2021,0D78,2022,15,2023,48)
-    if (/^[0-9A-Fa-f,]+$/.test(result.Geozone)) {
-      console.log(`🔍 MacSteel Hex fuel data detected: ${result.Geozone}`);
-      const fuelData = parseMacSteelFuelData(result.Geozone);
-      if (fuelData) {
-        result.fuel_level = fuelData.fuel_level;
-        result.fuel_volume = fuelData.fuel_volume;
-        result.fuel_temperature = fuelData.fuel_temperature;
-        result.FuelData = fuelData;
+    for (const record of vehicleRecords) {
+      if (record.trim()) {
+        const parsed = parseSingleVehicle(record);
+        vehicles.push(parsed);
       }
-    } else if (result.Geozone.includes(',')) {
-      // Complex geozone data (like: 320,22/11/2025 21:25:07,2,6,-26.324211,28.447510,1648.40,0,0,247554.6,65535,1,655001,197:16533@-97,1,,23,0)
-      console.log(`🔍 MacSteel Complex geozone data: ${result.Geozone.substring(0, 50)}...`);
-      result.GeozoneData = {
-        raw: result.Geozone,
-        parsed: result.Geozone.split(','),
-        type: 'complex_tracking_data'
-      };
     }
+
+    return { vehicles, vehicleCount: vehicles.length };
+  } else {
+    return parseSingleVehicle(message);
   }
+}
 
-  // Parse statuses if present
-  if (result.Statuses && result.Statuses.trim() !== '') {
-    result.StatusDetails = result.Statuses.split('~').map(status => status.trim());
-  }
-
-  result.parseMethod = 'Enhanced MacSteel format';
-  result.timestamp = new Date().toISOString();
-  result.rawMessage = message;
-  result.fieldCount = parts.length;
-
-  return result;
+function parseSingleVehicle(record) {
+  const parts = record.split("|");
+  
+  return {
+    Plate: parts[0] || '',
+    Speed: parseInt(parts[1], 10) || 0,
+    Latitude: parseFloat(parts[2]) || 0,
+    Longitude: parseFloat(parts[3]) || 0,
+    LocTime: parts[4] || '',
+    Mileage: parseInt(parts[5], 10) || 0,
+    Pocsagstr: parts[6] || '',
+    Status: parts[7] || '',
+    Geozone: parts[8] || '',
+    FuelData: parts[9] || '',
+    ItemInstalled: parts[10] || '',
+    DriverName: parts[11] || ''
+  };
 }
 
 // Enhanced fuel data parser for MacSteel
@@ -362,4 +340,4 @@ function parseFuelData(hexString) {
   }
 }
 
-module.exports = { parseMacSteelFeedSimple, parseEnhancedMacSteelFeed, parseEPSFeed, parseMacSteelMessage, parseMacSteelFuelData };
+module.exports = { parseMacSteelMessage };
