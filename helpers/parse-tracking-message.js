@@ -232,7 +232,7 @@ function parseEPSFuelData(hexString) {
   }
 }
 
-// MacSteel parser aligned with documented field names and actual data positions
+// Enhanced MacSteel parser based on EPS structure with documented field mapping
 function parseMacSteelMessage(message) {
   message = message.trim();
   if (message.startsWith("^")) message = message.slice(1);
@@ -240,7 +240,7 @@ function parseMacSteelMessage(message) {
 
   const parts = message.split("|");
   
-  // Actual format: Plate|Speed|Latitude|Longitude|LocTime|Mileage|Pocsagstr|Head|Geozone|DriverName|Address|Statuses|Rules
+  // Documented format: Plate|Speed|Latitude|Longitude|LocTime|Mileage|Pocsagstr|Head|Geozone|DriverName|Address|Statuses|Rules
   const result = {
     Plate: parts[0] || '', // Platform Name
     Speed: parseInt(parts[1], 10) || 0, // Last Speed
@@ -250,27 +250,84 @@ function parseMacSteelMessage(message) {
     Mileage: parseInt(parts[5], 10) || 0, // Last Mileage
     Pocsagstr: parts[6] || '', // Platform IP
     Head: parts[7] || '', // Last Heading
-    Geozone: parts[8] || '', // Last Geo zones (may contain fuel data)
+    Geozone: parts[8] || '', // Last Geo zones
     DriverName: parts[9] || '', // Last Driver Name
     Address: parts[10] || '', // Last Address
     Statuses: parts[11] || '', // Last Status that got active
-    Rules: parts[12] || '' // Last Rules that got active
+    Rules: parts[12] || '', // Last Rules that got active
+    DriverAuthentication: parts[13] || '' // Last driver code id
   };
 
-  // Parse fuel data from Geozone field if it contains comma-separated hex values
-  if (result.Geozone && result.Geozone.includes(',') && /^[0-9A-Fa-f,]+$/.test(result.Geozone)) {
-    const fuelData = parseFuelData(result.Geozone);
-    if (fuelData) {
-      result.FuelData = fuelData;
+  console.log(`🔍 MacSteel Message parts count: ${parts.length}`);
+  console.log(`🔍 MacSteel Geozone: ${result.Geozone}`);
+  
+  // Enhanced geozone processing
+  if (result.Geozone && result.Geozone.trim() !== '') {
+    // Check if it's hex fuel data (like: 25,405,1007,2020,04D1,2021,0D78,2022,15,2023,48)
+    if (/^[0-9A-Fa-f,]+$/.test(result.Geozone)) {
+      console.log(`🔍 MacSteel Hex fuel data detected: ${result.Geozone}`);
+      const fuelData = parseMacSteelFuelData(result.Geozone);
+      if (fuelData) {
+        result.fuel_level = fuelData.fuel_level;
+        result.fuel_volume = fuelData.fuel_volume;
+        result.fuel_temperature = fuelData.fuel_temperature;
+        result.FuelData = fuelData;
+      }
+    } else if (result.Geozone.includes(',')) {
+      // Complex geozone data (like: 320,22/11/2025 21:25:07,2,6,-26.324211,28.447510,1648.40,0,0,247554.6,65535,1,655001,197:16533@-97,1,,23,0)
+      console.log(`🔍 MacSteel Complex geozone data: ${result.Geozone.substring(0, 50)}...`);
+      result.GeozoneData = {
+        raw: result.Geozone,
+        parsed: result.Geozone.split(','),
+        type: 'complex_tracking_data'
+      };
     }
   }
 
-  result.parseMethod = 'MacSteel documented format';
+  // Parse statuses if present
+  if (result.Statuses && result.Statuses.trim() !== '') {
+    result.StatusDetails = result.Statuses.split('~').map(status => status.trim());
+  }
+
+  result.parseMethod = 'Enhanced MacSteel format';
   result.timestamp = new Date().toISOString();
   result.rawMessage = message;
   result.fieldCount = parts.length;
 
   return result;
+}
+
+// Enhanced fuel data parser for MacSteel
+function parseMacSteelFuelData(hexString) {
+  try {
+    const parts = hexString.split(',');
+    if (parts.length < 4) return null;
+
+    console.log(`🔍 MacSteel Parsing fuel data parts: ${parts.length}`);
+    
+    // Convert hex values to decimal
+    const parsed = {
+      raw: hexString,
+      values: parts.map((part, index) => {
+        const hex = part.trim();
+        const decimal = parseInt(hex, 16) || 0;
+        console.log(`🔍 MacSteel Part ${index}: ${hex} = ${decimal}`);
+        return { hex, decimal };
+      })
+    };
+
+    // Extract fuel data based on common patterns
+    if (parts.length >= 8) {
+      parsed.fuel_level = parseInt(parts[0], 16) || 0;
+      parsed.fuel_volume = parseInt(parts[2], 16) || 0;
+      parsed.fuel_temperature = parseInt(parts[4], 16) || 0;
+    }
+
+    return parsed;
+  } catch (error) {
+    console.log('🔍 MacSteel Error parsing fuel data:', error.message);
+    return { raw: hexString, error: error.message };
+  }
 }
 
 // Parse fuel data from hex string format like: 25,405,1007,2020,04D1,2021,0D78,2022,15,2023,48
@@ -305,4 +362,4 @@ function parseFuelData(hexString) {
   }
 }
 
-module.exports = { parseMacSteelFeedSimple, parseEnhancedMacSteelFeed, parseEPSFeed, parseMacSteelMessage };
+module.exports = { parseMacSteelFeedSimple, parseEnhancedMacSteelFeed, parseEPSFeed, parseMacSteelMessage, parseMacSteelFuelData };
