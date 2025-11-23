@@ -268,9 +268,9 @@ function parseSingleVehicle(record) {
     Mileage: parseInt(parts[5], 10) || 0,
     Pocsagstr: parts[6] || '',
     Status: parts[7] || '',
-    Geozone: parts[8] || '',
-    FuelData: parts[9] || '',
-    ItemInstalled: parts[10] || '',
+    Geozone: parts[10] || '',
+    FuelData: parts[8] || '',
+    ItemInstalled: parts[9] || '',
     DriverName: parts[11] || '',
     rawMessage: record,
     fieldCount: parts.length
