@@ -6,6 +6,7 @@ const express = require("express");
 const path = require("path");
 const http = require("http");
 const WebSocket = require("ws");
+const vehicleRoutes = require('./vehicleRoutes');
 const { logToConsole } = require("../helpers/logger");
 const { ALLOWED_IPS } = require("../helpers/allowed-ips");
 
@@ -83,24 +84,29 @@ const combinedFeedServer = net.createServer((socket) => {
   });
 });
 
-const combinedFeedHttpServer = http.createServer((req, res) => {
-  if (req.url === "/latest" && req.method === "GET") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(latestTrackingData));
-    return;
-  }
+const combinedFeedHttpServer = http.createServer();
+const app = express();
 
+app.use(express.json());
+app.use('/api/vehicles', vehicleRoutes);
+
+app.get('/latest', (req, res) => {
+  res.json(latestTrackingData);
+});
+
+app.get('/', (req, res) => {
   const filePath = path.join(__dirname, "public", "index.html");
   fs.readFile(filePath, (err, content) => {
     if (err) {
-      res.writeHead(500);
-      res.end("Error loading frontend");
+      res.status(500).send("Error loading frontend");
     } else {
-      res.writeHead(200, { "Content-Type": "text/html" });
-      res.end(content);
+      res.setHeader("Content-Type", "text/html");
+      res.send(content);
     }
   });
 });
+
+combinedFeedHttpServer.on('request', app);
 
 // WebSocket setup
 const combinedFeedwss = new WebSocket.Server({ server: combinedFeedHttpServer });

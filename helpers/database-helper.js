@@ -2,17 +2,72 @@ const pool = require('../config/database');
 
 async function updateVehicleData(trackingData) {
   try {
+    // Build dynamic query based on non-empty fields
+    const fields = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (trackingData.Plate) {
+      fields.push(`plate = $${paramCount++}`);
+      values.push(trackingData.Plate);
+    }
+    if (trackingData.Speed !== undefined) {
+      fields.push(`speed = $${paramCount++}`);
+      values.push(trackingData.Speed);
+    }
+    if (trackingData.Latitude) {
+      fields.push(`latitude = $${paramCount++}`);
+      values.push(trackingData.Latitude);
+    }
+    if (trackingData.Longitude) {
+      fields.push(`longitude = $${paramCount++}`);
+      values.push(trackingData.Longitude);
+    }
+    if (trackingData.LocTime) {
+      fields.push(`loctime = $${paramCount++}`);
+      values.push(trackingData.LocTime);
+    }
+    if (trackingData.Mileage) {
+      fields.push(`mileage = $${paramCount++}`);
+      values.push(trackingData.Mileage);
+    }
+    if (trackingData.Status && trackingData.Status.trim() !== '') {
+      fields.push(`status = $${paramCount++}`);
+      values.push(trackingData.Status);
+    }
+    if (trackingData.Geozone) {
+      fields.push(`geozone = $${paramCount++}`);
+      values.push(trackingData.Geozone);
+    }
+    if (trackingData.FuelData) {
+      fields.push(`fueldata = $${paramCount++}`);
+      values.push(trackingData.FuelData);
+    }
+    if (trackingData.DriverName) {
+      fields.push(`driver_name = $${paramCount++}`);
+      values.push(trackingData.DriverName);
+    }
+    if (trackingData.ItemInstalled) {
+      fields.push(`iteminstalled = $${paramCount++}`);
+      values.push(trackingData.ItemInstalled);
+    }
+
+    if (fields.length === 0) return false;
+
     // First try to find by IP address (Pocsagstr)
     let result = await pool.query(
-      'UPDATE vehicles SET plate = $1, speed = $2, latitude = $3, longitude = $4, loctime = $5, mileage = $6, status = $7, geozone = $8, fueldata = $9, driver_name = $10, iteminstalled = $11 WHERE ip_address = $12 RETURNING id',
-      [trackingData.Plate, trackingData.Speed, trackingData.Latitude, trackingData.Longitude, trackingData.LocTime, trackingData.Mileage, trackingData.Status, trackingData.Geozone, trackingData.FuelData, trackingData.DriverName, trackingData.ItemInstalled, trackingData.Pocsagstr]
+      `UPDATE vehicles SET ${fields.join(', ')} WHERE ip_address = $${paramCount} RETURNING id`,
+      [...values, trackingData.Pocsagstr]
     );
 
     // If no rows updated by IP, try by reg (Plate)
     if (result.rowCount === 0 && trackingData.Plate) {
+      fields.push(`ip_address = $${paramCount++}`);
+      values.push(trackingData.Pocsagstr);
+      
       result = await pool.query(
-        'UPDATE vehicles SET plate = $1, speed = $2, latitude = $3, longitude = $4, loctime = $5, mileage = $6, status = $7, geozone = $8, fueldata = $9, driver_name = $10, iteminstalled = $11, ip_address = $12 WHERE reg = $13 RETURNING id',
-        [trackingData.Plate, trackingData.Speed, trackingData.Latitude, trackingData.Longitude, trackingData.LocTime, trackingData.Mileage, trackingData.Status, trackingData.Geozone, trackingData.FuelData, trackingData.DriverName, trackingData.ItemInstalled, trackingData.Pocsagstr, trackingData.Plate]
+        `UPDATE vehicles SET ${fields.join(', ')} WHERE reg = $${paramCount} RETURNING id`,
+        [...values, trackingData.Plate]
       );
     }
 
