@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { parseFuelData } = require('./fuel-parser');
 
 async function updateVehicleData(trackingData) {
   try {
@@ -43,6 +44,22 @@ async function updateVehicleData(trackingData) {
     if (trackingData.FuelData) {
       fields.push(`fueldata = $${paramCount++}`);
       values.push(trackingData.FuelData);
+      
+      // Parse fuel data and add individual fields
+      const parsedFuel = parseFuelData(trackingData.FuelData);
+      if (parsedFuel) {
+        fields.push(`fuel_probe_1_level = $${paramCount++}`);
+        values.push(parsedFuel.fuel_probe_1_level);
+        
+        fields.push(`fuel_probe_1_volume_in_tank = $${paramCount++}`);
+        values.push(parsedFuel.fuel_probe_1_volume_in_tank);
+        
+        fields.push(`fuel_probe_1_temperature = $${paramCount++}`);
+        values.push(parsedFuel.fuel_probe_1_temperature);
+        
+        fields.push(`fuel_probe_1_level_percentage = $${paramCount++}`);
+        values.push(parsedFuel.fuel_probe_1_level_percentage);
+      }
     }
     if (trackingData.DriverName) {
       fields.push(`driver_name = $${paramCount++}`);
