@@ -11,6 +11,7 @@ const { ALLOWED_IPS } = require("../helpers/allowed-ips");
 
 const { parseCombinedFeedMessage } = require("../helpers/parse-tracking-message");
 const { isValveOpen } = require("../helpers/tcp-valve");
+const { updateVehicleData } = require("../helpers/database-helper");
 // import { logToConsole } from "../helpers/logger";
 
 const combinedFeedPort = process.env.PORT || 9000;
@@ -50,6 +51,11 @@ const combinedFeedServer = net.createServer((socket) => {
       latestTrackingData = parsed;
 
       logToConsole("combinedFeed","info", `Parsed Message: ${JSON.stringify(parsed)}`);
+
+      // Update database (non-blocking)
+      updateVehicleData(parsed).catch(err => 
+        logToConsole("combinedFeed","error", `DB update failed: ${err.message}`)
+      );
 
       // Send acknowledgment
       socket.write("OK");

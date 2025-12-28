@@ -1,4 +1,5 @@
 require("dotenv").config();
+const pool = require('./config/database');
 const { ALLOWED_IPS } = require("./helpers/allowed-ips");
 const {
   combinedFeedServer,
@@ -28,3 +29,11 @@ combinedFeedServer.listen(combinedFeedPort, () => {
 combinedFeedHttpServer.listen(8000, () => {
   console.log("🌐 Web dashboard + API on http://localhost:8000");
 });
+
+// Test query for ENER-0001
+pool.query('SELECT * FROM vehicles WHERE account_number = $1', ['ENER-0001'])
+  .then(result => {
+    console.log(`Found ${result.rows.length} vehicles for ENER-0001:`);
+    console.log(result.rows);
+  })
+  .catch(err => console.error('Query error:', err));
