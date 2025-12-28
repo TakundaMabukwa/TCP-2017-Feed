@@ -1,6 +1,15 @@
 const pool = require('../config/database');
 
 class VehicleController {
+  static async getAll(req, res) {
+    try {
+      const result = await pool.query('SELECT * FROM vehicles ORDER BY reg');
+      res.json(result.rows);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async getByAccountNumber(req, res) {
     try {
       const { accountNumber } = req.params;

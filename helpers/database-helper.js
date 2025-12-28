@@ -23,10 +23,6 @@ async function updateVehicleData(trackingData) {
       fields.push(`longitude = $${paramCount++}`);
       values.push(trackingData.Longitude);
     }
-    if (trackingData.LocTime) {
-      fields.push(`loctime = $${paramCount++}`);
-      values.push(trackingData.LocTime);
-    }
     if (trackingData.Mileage) {
       fields.push(`mileage = $${paramCount++}`);
       values.push(trackingData.Mileage);
@@ -34,6 +30,11 @@ async function updateVehicleData(trackingData) {
     if (trackingData.Status && trackingData.Status.trim() !== '') {
       fields.push(`status = $${paramCount++}`);
       values.push(trackingData.Status);
+      // Update loctime when status changes
+      if (trackingData.LocTime) {
+        fields.push(`loctime = $${paramCount++}`);
+        values.push(trackingData.LocTime);
+      }
     }
     if (trackingData.Geozone) {
       fields.push(`geozone = $${paramCount++}`);
