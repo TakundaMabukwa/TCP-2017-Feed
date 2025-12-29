@@ -20,6 +20,7 @@ let latestTrackingData = null;
 
 const combinedFeedServer = net.createServer((socket) => {
   let clientIp = socket.remoteAddress;
+  
   if (clientIp === '::1') {
     clientIp = '127.0.0.1';
   } else if (clientIp.startsWith('::ffff:')) {
@@ -47,30 +48,35 @@ const combinedFeedServer = net.createServer((socket) => {
 
   socket.on("data", (data) => {
     const raw = data.toString();
-    try {
-      const parsed = parseCombinedFeedMessage(raw);
-      latestTrackingData = parsed;
+    
+    // Split messages by ^ delimiter
+    const messages = raw.split('^').filter(msg => msg.trim() !== '');
+    
+    messages.forEach(message => {
+      try {
+        const parsed = parseCombinedFeedMessage(message);
+        latestTrackingData = parsed;
 
-      logToConsole("combinedFeed","info", `Parsed Message: ${JSON.stringify(parsed)}`);
+        logToConsole("combinedFeed","info", `Parsed Message: ${JSON.stringify(parsed)}`);
 
-      // Update database (non-blocking)
-      updateVehicleData(parsed).catch(err => 
-        logToConsole("combinedFeed","error", `DB update failed: ${err.message}`)
-      );
+        // Update database (non-blocking)
+        updateVehicleData(parsed).catch(err => 
+          logToConsole("combinedFeed","error", `DB update failed: ${err.message}`)
+        );
 
-      // Send acknowledgment
-      socket.write("OK");
-
-      // Broadcast to WebSocket clients
-      combinedFeedwss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(parsed));
-        }
-      });
-    } catch (err) {
-      logToConsole("combinedFeed","error", `Failed to parse message: ${err.message}`);
-      socket.write("ERROR");
-    }
+        // Broadcast to WebSocket clients
+        combinedFeedwss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(parsed));
+          }
+        });
+      } catch (err) {
+        logToConsole("combinedFeed","error", `Failed to parse message: ${err.message}`);
+      }
+    });
+    
+    // Send acknowledgment
+    socket.write("OK");
   });
 
   socket.on("error", (err) => {
