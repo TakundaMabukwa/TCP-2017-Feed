@@ -1,4 +1,4 @@
-const pool = require('../config/database');
+const { pool } = require('../config/database');
 const { parseFuelData } = require('./fuel-parser');
 
 async function updateVehicleData(trackingData) {

@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 const http = require('http');
-const pool = require('../config/database');
+const { pool } = require('../config/database');
 const { parseFuelData } = require('../helpers/fuel-parser');
 
 const server = http.createServer();
