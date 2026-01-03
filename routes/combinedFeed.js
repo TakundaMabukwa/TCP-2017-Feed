@@ -13,6 +13,7 @@ const { ALLOWED_IPS } = require("../helpers/allowed-ips");
 const { parseCombinedFeedMessage } = require("../helpers/parse-tracking-message");
 const { isValveOpen } = require("../helpers/tcp-valve");
 const { updateVehicleData } = require("../helpers/database-helper");
+const { broadcastEnerData } = require("./ener-websocket");
 // import { logToConsole } from "../helpers/logger";
 
 const combinedFeedPort = process.env.PORT || 9000;
@@ -63,6 +64,11 @@ const combinedFeedServer = net.createServer((socket) => {
         updateVehicleData(parsed).catch(err => 
           logToConsole("combinedFeed","error", `DB update failed: ${err.message}`)
         );
+
+        // Check if this is ENER-0001 account data and broadcast
+        if (shouldBroadcastToEner(parsed)) {
+          broadcastEnerData(parsed, clientIp);
+        }
 
         // Broadcast to WebSocket clients
         combinedFeedwss.clients.forEach((client) => {
@@ -116,6 +122,13 @@ combinedFeedHttpServer.on('request', app);
 
 // WebSocket setup
 const combinedFeedwss = new WebSocket.Server({ server: combinedFeedHttpServer });
+
+// Helper function to determine if data should be broadcast to ENER WebSocket
+function shouldBroadcastToEner(trackingData) {
+  // Add logic here to identify ENER-0001 account data
+  // This could be based on IP, plate pattern, or other identifiers
+  return true; // For now, broadcast all data - adjust as needed
+}
 
 module.exports = {
   combinedFeedServer,

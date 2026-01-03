@@ -7,6 +7,7 @@ const {
   combinedFeedPort,
 } = require("./routes/combinedFeed.js");
 const { logToConsole } = require("./helpers/logger");
+const enerWebSocket = require('./routes/ener-websocket');
 
 // tcp server - mac steel
 combinedFeedServer.listen(combinedFeedPort, () => {
