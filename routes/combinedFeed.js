@@ -99,6 +99,7 @@ const app = express();
 
 app.use(express.json());
 app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/energyrite-sites', require('../client-routes/energy-rite'));
 
 app.get('/latest', (req, res) => {
   res.json(latestTrackingData);
