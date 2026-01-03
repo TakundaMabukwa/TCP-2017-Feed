@@ -14,7 +14,7 @@ function mapEnerData(trackingData, clientIp) {
     Speed: trackingData.Speed || 0,
     Latitude: trackingData.Latitude || 0,
     Longitude: trackingData.Longitude || 0,
-    Quality: clientIp || "121.2.0.1",
+    Quality: trackingData.Pocsagstr || "121.2.0.1",
     Mileage: trackingData.Mileage || 0,
     Pocsagstr: trackingData.Pocsagstr || "SW",
     Head: "",
@@ -31,7 +31,7 @@ function mapEnerData(trackingData, clientIp) {
   };
 }
 
-async function broadcastEnerData(trackingData, clientIp) {
+async function broadcastEnerData(trackingData) {
   try {
     // Check if this vehicle has ENER-0001 account
     const result = await pool.query(
@@ -40,7 +40,7 @@ async function broadcastEnerData(trackingData, clientIp) {
     );
     
     if (result.rows.length > 0) {
-      const mappedData = mapEnerData(trackingData, clientIp);
+      const mappedData = mapEnerData(trackingData);
       
       wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {

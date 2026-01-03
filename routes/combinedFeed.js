@@ -66,7 +66,7 @@ const combinedFeedServer = net.createServer((socket) => {
         );
 
         // Check if this is ENER-0001 account data and broadcast
-        broadcastEnerData(parsed, clientIp);
+        broadcastEnerData(parsed);
 
         // Broadcast to WebSocket clients
         combinedFeedwss.clients.forEach((client) => {
