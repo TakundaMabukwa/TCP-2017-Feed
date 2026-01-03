@@ -66,9 +66,7 @@ const combinedFeedServer = net.createServer((socket) => {
         );
 
         // Check if this is ENER-0001 account data and broadcast
-        if (shouldBroadcastToEner(parsed)) {
-          broadcastEnerData(parsed, clientIp);
-        }
+        broadcastEnerData(parsed, clientIp);
 
         // Broadcast to WebSocket clients
         combinedFeedwss.clients.forEach((client) => {
@@ -123,12 +121,7 @@ combinedFeedHttpServer.on('request', app);
 // WebSocket setup
 const combinedFeedwss = new WebSocket.Server({ server: combinedFeedHttpServer });
 
-// Helper function to determine if data should be broadcast to ENER WebSocket
-function shouldBroadcastToEner(trackingData) {
-  // Add logic here to identify ENER-0001 account data
-  // This could be based on IP, plate pattern, or other identifiers
-  return true; // For now, broadcast all data - adjust as needed
-}
+
 
 module.exports = {
   combinedFeedServer,

@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const http = require('http');
+const pool = require('../config/database');
 const { parseFuelData } = require('../helpers/fuel-parser');
 
 const server = http.createServer();
@@ -30,14 +31,26 @@ function mapEnerData(trackingData, clientIp) {
   };
 }
 
-function broadcastEnerData(trackingData, clientIp) {
-  const mappedData = mapEnerData(trackingData, clientIp);
-  
-  wss.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(mappedData));
+async function broadcastEnerData(trackingData, clientIp) {
+  try {
+    // Check if this vehicle has ENER-0001 account
+    const result = await pool.query(
+      'SELECT account_number FROM vehicles WHERE (ip_address = $1 OR reg = $2) AND account_number = $3',
+      [trackingData.Pocsagstr, trackingData.Plate, 'ENER-0001']
+    );
+    
+    if (result.rows.length > 0) {
+      const mappedData = mapEnerData(trackingData, clientIp);
+      
+      wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(mappedData));
+        }
+      });
     }
-  });
+  } catch (err) {
+    console.error('ENER broadcast error:', err);
+  }
 }
 
 wss.on('connection', (ws) => {
