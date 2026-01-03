@@ -6,10 +6,10 @@ const { parseFuelData } = require('../helpers/fuel-parser');
 const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
-function mapEnerData(trackingData, clientIp) {
+function mapEnerData(trackingData) {
   const fuelData = parseFuelData(trackingData.FuelData);
   
-  return {
+  const data = {
     Plate: trackingData.Plate || "FOURWAYS",
     Speed: trackingData.Speed || 0,
     Latitude: trackingData.Latitude || 0,
@@ -23,12 +23,17 @@ function mapEnerData(trackingData, clientIp) {
     NameEvent: "",
     Temperature: trackingData.FuelData || "",
     LocTime: trackingData.LocTime || new Date().toISOString().replace('T', ' ').slice(0, 19),
-    fuel_probe_1_level: fuelData?.fuel_probe_1_level || 0,
-    fuel_probe_1_volume_in_tank: fuelData?.fuel_probe_1_volume_in_tank || 0,
-    fuel_probe_1_temperature: fuelData?.fuel_probe_1_temperature || 0,
-    fuel_probe_1_level_percentage: fuelData?.fuel_probe_1_level_percentage || 0,
     message_type: 405
   };
+  
+  if (fuelData) {
+    data.fuel_probe_1_level = fuelData.fuel_probe_1_level;
+    data.fuel_probe_1_volume_in_tank = fuelData.fuel_probe_1_volume_in_tank;
+    data.fuel_probe_1_temperature = fuelData.fuel_probe_1_temperature;
+    data.fuel_probe_1_level_percentage = fuelData.fuel_probe_1_level_percentage;
+  }
+  
+  return data;
 }
 
 async function broadcastEnerData(trackingData) {
