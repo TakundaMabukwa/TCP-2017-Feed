@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
   
   try {
     const result = await pool.query(
-      `SELECT plate, reg, speed, latitude, longitude, ip_address, status, 
+      `SELECT id, plate, reg, speed, latitude, longitude, ip_address, status, 
        fuel_probe_1_level, fuel_probe_1_volume_in_tank, 
        fuel_probe_1_temperature, fuel_probe_1_level_percentage, 
        cost_code, color_codes, client_notes
@@ -28,6 +28,7 @@ router.get('/', async (req, res) => {
     );
     
     cache = result.rows.map(row => ({
+      Id: row.id,
       Plate: row.plate || row.reg,
       Speed: row.speed || 0,
       Latitude: row.latitude || 0,
@@ -62,7 +63,7 @@ router.get('/', async (req, res) => {
 router.get('/:plate', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT plate, reg, speed, latitude, longitude, pocsagstr, ip_address, 
+      `SELECT id, plate, reg, speed, latitude, longitude, pocsagstr, ip_address, 
        mileage, geozone, status, fueldata, loctime, 
        fuel_probe_1_level, fuel_probe_1_volume_in_tank, 
        fuel_probe_1_temperature, fuel_probe_1_level_percentage,
@@ -77,6 +78,7 @@ router.get('/:plate', async (req, res) => {
     
     const row = result.rows[0];
     res.json({
+      Id: row.id,
       Plate: row.plate || row.reg,
       Speed: row.speed || 0,
       Latitude: row.latitude || 0,
