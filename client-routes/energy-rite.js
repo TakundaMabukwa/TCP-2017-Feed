@@ -18,10 +18,10 @@ router.get('/', async (req, res) => {
   
   try {
     const result = await pool.query(
-      `SELECT id, plate, reg, speed, latitude, longitude, ip_address, status, 
+      `SELECT id, plate, reg, speed, latitude, longitude, ip_address, status, loctime, 
        fuel_probe_1_level, fuel_probe_1_volume_in_tank, 
        fuel_probe_1_temperature, fuel_probe_1_level_percentage, 
-       cost_code, color_codes, client_notes
+       cost_code, color_codes, client_notes, updated_at
        FROM vehicles WHERE account_number = $1 
        ORDER BY loctime DESC LIMIT 100`,
       ['ENER-0001']
@@ -49,7 +49,8 @@ router.get('/', async (req, res) => {
       message_type: 405,
       cost_code: row.cost_code || null,
       color_codes: row.color_codes || {},
-      client_notes: row.client_notes || null
+      client_notes: row.client_notes || null,
+      updated_at: row.updated_at
     }));
     
     cacheTime = now;
@@ -67,7 +68,7 @@ router.get('/:plate', async (req, res) => {
        mileage, geozone, status, fueldata, loctime, 
        fuel_probe_1_level, fuel_probe_1_volume_in_tank, 
        fuel_probe_1_temperature, fuel_probe_1_level_percentage,
-       cost_code, color_codes, client_notes
+       cost_code, color_codes, client_notes, updated_at
        FROM vehicles WHERE account_number = $1 AND (plate = $2 OR reg = $2)`,
       ['ENER-0001', req.params.plate]
     );
@@ -99,7 +100,8 @@ router.get('/:plate', async (req, res) => {
       message_type: 405,
       cost_code: row.cost_code || null,
       color_codes: row.color_codes || {},
-      client_notes: row.client_notes || null
+      client_notes: row.client_notes || null,
+      updated_at: row.updated_at
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -134,7 +136,7 @@ router.patch('/:plate', async (req, res) => {
     const result = await pool.query(
       `UPDATE vehicles SET ${fields.join(', ')} 
        WHERE account_number = $${paramCount++} AND (plate = $${paramCount} OR reg = $${paramCount}) 
-       RETURNING plate, cost_code, color_codes, client_notes`,
+       RETURNING plate, cost_code, color_codes, client_notes, updated_at`,
       values
     );
     
