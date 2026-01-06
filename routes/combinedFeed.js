@@ -19,6 +19,9 @@ const { broadcastEnerData } = require("./ener-websocket");
 const combinedFeedPort = process.env.PORT || 9000;
 let latestTrackingData = null;
 
+// Raw data logger
+const rawLogStream = fs.createWriteStream(path.join(__dirname, '../raw_data.log'), { flags: 'a' });
+
 const combinedFeedServer = net.createServer((socket) => {
   let clientIp = socket.remoteAddress;
   
@@ -49,6 +52,9 @@ const combinedFeedServer = net.createServer((socket) => {
 
   socket.on("data", (data) => {
     const raw = data.toString();
+    
+    // Log raw data
+    rawLogStream.write(`[${new Date().toISOString()}] ${clientIp}: ${raw}\n`);
     
     // Split messages by ^ delimiter
     const messages = raw.split('^').filter(msg => msg.trim() !== '');
