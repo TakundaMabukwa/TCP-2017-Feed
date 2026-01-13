@@ -20,7 +20,8 @@ const combinedFeedPort = process.env.PORT || 9000;
 let latestTrackingData = null;
 
 // Raw data logger
-const rawLogStream = fs.createWriteStream(path.join(__dirname, '../raw_data.log'), { flags: 'a' });
+const rawLogPath = path.join(__dirname, '..', 'raw_data.log');
+const rawLogStream = fs.createWriteStream(rawLogPath, { flags: 'a' });
 
 const combinedFeedServer = net.createServer((socket) => {
   let clientIp = socket.remoteAddress;
@@ -112,12 +113,15 @@ app.get('/latest', (req, res) => {
 });
 
 app.get('/raw-logs', (req, res) => {
-  const logPath = path.join(__dirname, '../raw_data.log');
+  if (!fs.existsSync(rawLogPath)) {
+    return res.status(404).json({ error: 'No log data available yet' });
+  }
+  
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   
-  fs.readFile(logPath, 'utf8', (err, data) => {
+  fs.readFile(rawLogPath, 'utf8', (err, data) => {
     if (err) {
-      return res.status(404).json({ error: 'Log file not found' });
+      return res.status(500).json({ error: 'Failed to read log file' });
     }
     
     const lines = data.split('\n').filter(line => {
