@@ -118,21 +118,33 @@ app.get('/raw-logs', (req, res) => {
   }
   
   const today = new Date().toISOString().split('T')[0];
+  const readStream = fs.createReadStream(rawLogPath, { encoding: 'utf8' });
   
-  fs.readFile(rawLogPath, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to read log file' });
-    }
+  res.setHeader('Content-Type', 'text/plain');
+  
+  let buffer = '';
+  
+  readStream.on('data', (chunk) => {
+    buffer += chunk;
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
     
-    const lines = data.split('\n').filter(line => line.includes(today));
-    
-    const tempFile = path.join(__dirname, '../raw_data_today.log');
-    fs.writeFileSync(tempFile, lines.join('\n'));
-    
-    res.download(tempFile, `raw_data_${today}.log`, (err) => {
-      fs.unlinkSync(tempFile);
-      if (err) res.status(500).json({ error: 'Download failed' });
+    lines.forEach(line => {
+      if (line.includes(today)) {
+        res.write(line + '\n');
+      }
     });
+  });
+  
+  readStream.on('end', () => {
+    if (buffer && buffer.includes(today)) {
+      res.write(buffer);
+    }
+    res.end();
+  });
+  
+  readStream.on('error', () => {
+    res.status(500).json({ error: 'Failed to read log file' });
   });
 });
 
