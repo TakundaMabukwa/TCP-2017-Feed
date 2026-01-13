@@ -111,6 +111,15 @@ app.get('/latest', (req, res) => {
   res.json(latestTrackingData);
 });
 
+app.get('/raw-logs', (req, res) => {
+  const logPath = path.join(__dirname, '../raw_data.log');
+  res.download(logPath, 'raw_data.log', (err) => {
+    if (err) {
+      res.status(404).json({ error: 'Log file not found' });
+    }
+  });
+});
+
 app.get('/', (req, res) => {
   const filePath = path.join(__dirname, "public", "index.html");
   fs.readFile(filePath, (err, content) => {

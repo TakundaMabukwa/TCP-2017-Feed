@@ -18,7 +18,8 @@ router.get('/', async (req, res) => {
   
   try {
     const result = await pool.query(
-      `SELECT id, plate, reg, speed, latitude, longitude, ip_address, status, loctime, 
+      `SELECT id, plate, reg, speed, latitude, longitude, ip_address, pocsagstr, 
+       mileage, geozone, status, fueldata, loctime, 
        fuel_probe_1_level, fuel_probe_1_volume_in_tank, 
        fuel_probe_1_temperature, fuel_probe_1_level_percentage, 
        cost_code, color_codes, client_notes, updated_at
