@@ -117,23 +117,19 @@ app.get('/raw-logs', (req, res) => {
     return res.status(404).json({ error: 'No log data available yet' });
   }
   
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const today = new Date().toISOString().split('T')[0];
   
   fs.readFile(rawLogPath, 'utf8', (err, data) => {
     if (err) {
       return res.status(500).json({ error: 'Failed to read log file' });
     }
     
-    const lines = data.split('\n').filter(line => {
-      const match = line.match(/\[(.*?)\]/);
-      if (!match) return false;
-      return match[1] >= cutoff;
-    });
+    const lines = data.split('\n').filter(line => line.includes(today));
     
-    const tempFile = path.join(__dirname, '../raw_data_24h.log');
+    const tempFile = path.join(__dirname, '../raw_data_today.log');
     fs.writeFileSync(tempFile, lines.join('\n'));
     
-    res.download(tempFile, 'raw_data_24h.log', (err) => {
+    res.download(tempFile, `raw_data_${today}.log`, (err) => {
       fs.unlinkSync(tempFile);
       if (err) res.status(500).json({ error: 'Download failed' });
     });
