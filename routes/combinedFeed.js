@@ -113,10 +113,26 @@ app.get('/latest', (req, res) => {
 
 app.get('/raw-logs', (req, res) => {
   const logPath = path.join(__dirname, '../raw_data.log');
-  res.download(logPath, 'raw_data.log', (err) => {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  
+  fs.readFile(logPath, 'utf8', (err, data) => {
     if (err) {
-      res.status(404).json({ error: 'Log file not found' });
+      return res.status(404).json({ error: 'Log file not found' });
     }
+    
+    const lines = data.split('\n').filter(line => {
+      const match = line.match(/\[(.*?)\]/);
+      if (!match) return false;
+      return match[1] >= cutoff;
+    });
+    
+    const tempFile = path.join(__dirname, '../raw_data_24h.log');
+    fs.writeFileSync(tempFile, lines.join('\n'));
+    
+    res.download(tempFile, 'raw_data_24h.log', (err) => {
+      fs.unlinkSync(tempFile);
+      if (err) res.status(500).json({ error: 'Download failed' });
+    });
   });
 });
 
