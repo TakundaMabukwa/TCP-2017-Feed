@@ -152,4 +152,31 @@ router.patch('/:plate', async (req, res) => {
   }
 });
 
+// Add new vehicle with ENER-0001 account
+router.post('/', async (req, res) => {
+  try {
+    const { plate, reg, ip_address, cost_code } = req.body;
+    
+    if (!plate && !reg) {
+      return res.status(400).json({ error: 'plate or reg is required' });
+    }
+    
+    if (!ip_address) {
+      return res.status(400).json({ error: 'ip_address is required' });
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO vehicles (plate, reg, ip_address, account_number, cost_code, created_at) 
+       VALUES ($1, $2, $3, $4, $5, NOW()) 
+       RETURNING id, plate, reg, ip_address, account_number, cost_code, created_at`,
+      [plate || '', reg || '', ip_address, 'ENER-0001', cost_code || null]
+    );
+    
+    cache = null;
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
