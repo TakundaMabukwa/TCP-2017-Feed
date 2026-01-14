@@ -179,4 +179,23 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Delete vehicle
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM vehicles WHERE account_number = $1 AND id = $2 RETURNING id, plate',
+      ['ENER-0001', req.params.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    
+    cache = null;
+    res.json({ message: 'Vehicle deleted', id: result.rows[0].id, plate: result.rows[0].plate });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
