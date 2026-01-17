@@ -6,6 +6,10 @@ const { parseFuelData } = require('../helpers/fuel-parser');
 const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
+// Message queue to ensure no data loss
+const messageQueue = [];
+let isProcessingQueue = false;
+
 function mapEnerData(trackingData) {
   const fuelData = parseFuelData(trackingData.FuelData);
   
@@ -36,9 +40,36 @@ function mapEnerData(trackingData) {
   return data;
 }
 
+async function processQueue() {
+  if (isProcessingQueue || messageQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  
+  while (messageQueue.length > 0) {
+    const { mappedData } = messageQueue.shift();
+    const sends = [];
+    
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        sends.push(
+          new Promise((resolve) => {
+            client.send(JSON.stringify(mappedData), (err) => {
+              if (err) console.error('WS send error:', err);
+              resolve();
+            });
+          })
+        );
+      }
+    });
+    
+    await Promise.all(sends);
+  }
+  
+  isProcessingQueue = false;
+}
+
 async function broadcastEnerData(trackingData) {
   try {
-    // Check if this vehicle has ENER-0001 account
     const result = await pool.query(
       'SELECT account_number FROM vehicles WHERE (ip_address = $1 OR reg = $2) AND account_number = $3',
       [trackingData.Pocsagstr, trackingData.Plate, 'ENER-0001']
@@ -47,11 +78,11 @@ async function broadcastEnerData(trackingData) {
     if (result.rows.length > 0) {
       const mappedData = mapEnerData(trackingData);
       
-      wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(mappedData));
-        }
-      });
+      // Add to queue for guaranteed delivery
+      messageQueue.push({ mappedData });
+      
+      // Process queue
+      await processQueue();
     }
   } catch (err) {
     console.error('ENER broadcast error:', err);

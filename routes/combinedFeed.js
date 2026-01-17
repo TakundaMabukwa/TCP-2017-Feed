@@ -51,7 +51,7 @@ const combinedFeedServer = net.createServer((socket) => {
 
   logToConsole("combinedFeed","connection", `Established connection with ${clientIp}`);
 
-  socket.on("data", (data) => {
+  socket.on("data", async (data) => {
     const raw = data.toString();
     
     // Log raw data
@@ -60,33 +60,40 @@ const combinedFeedServer = net.createServer((socket) => {
     // Split messages by ^ delimiter
     const messages = raw.split('^').filter(msg => msg.trim() !== '');
     
-    messages.forEach(message => {
-      try {
-        const parsed = parseCombinedFeedMessage(message);
-        latestTrackingData = parsed;
-
-        logToConsole("combinedFeed","info", `Parsed Message: ${JSON.stringify(parsed)}`);
-
-        // Update database (non-blocking)
-        updateVehicleData(parsed).catch(err => 
-          logToConsole("combinedFeed","error", `DB update failed: ${err.message}`)
-        );
-
-        // Check if this is ENER-0001 account data and broadcast
-        broadcastEnerData(parsed);
-
-        // Broadcast to WebSocket clients
-        combinedFeedwss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(parsed));
-          }
-        });
-      } catch (err) {
-        logToConsole("combinedFeed","error", `Failed to parse message: ${err.message}`);
-      }
-    });
+    logToConsole("combinedFeed","info", `Received ${messages.length} messages`);
     
-    // Send acknowledgment
+    // Process in chunks to handle large volumes
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < messages.length; i += CHUNK_SIZE) {
+      const chunk = messages.slice(i, i + CHUNK_SIZE);
+      
+      const processPromises = chunk.map(async (message) => {
+        try {
+          const parsed = parseCombinedFeedMessage(message);
+          latestTrackingData = parsed;
+
+          // Run DB update and broadcasts in parallel
+          await Promise.allSettled([
+            updateVehicleData(parsed),
+            broadcastEnerData(parsed),
+            Promise.resolve().then(() => {
+              combinedFeedwss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                  client.send(JSON.stringify(parsed));
+                }
+              });
+            })
+          ]);
+        } catch (err) {
+          logToConsole("combinedFeed","error", `Failed to parse message: ${err.message}`);
+        }
+      });
+      
+      // Wait for chunk to complete before next chunk
+      await Promise.allSettled(processPromises);
+    }
+    
+    logToConsole("combinedFeed","info", `Completed processing ${messages.length} messages`);
     socket.write("OK");
   });
 
