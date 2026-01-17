@@ -29,12 +29,16 @@ async function updateVehicleData(trackingData) {
       values.push(trackingData.Mileage);
     }
     if (trackingData.Status && trackingData.Status.trim() !== '') {
-      fields.push(`status = $${paramCount++}`);
-      values.push(trackingData.Status);
-      // Update loctime when status changes
-      if (trackingData.LocTime) {
-        fields.push(`loctime = $${paramCount++}`);
-        values.push(trackingData.LocTime);
+      const statusUpper = trackingData.Status.toUpperCase();
+      const allowedStatuses = ['PTO ON', 'PTO OFF', 'ENGINE ON', 'ENGINE OFF'];
+      if (allowedStatuses.includes(statusUpper)) {
+        fields.push(`status = $${paramCount++}`);
+        values.push(trackingData.Status);
+        // Update loctime when status changes
+        if (trackingData.LocTime) {
+          fields.push(`loctime = $${paramCount++}`);
+          values.push(trackingData.LocTime);
+        }
       }
     }
     if (trackingData.Geozone) {

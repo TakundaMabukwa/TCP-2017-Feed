@@ -19,10 +19,6 @@ const { broadcastEnerData } = require("./ener-websocket");
 const combinedFeedPort = process.env.PORT || 9000;
 let latestTrackingData = null;
 
-// Raw data logger
-const rawLogPath = path.join(__dirname, '..', 'raw_data.log');
-const rawLogStream = fs.createWriteStream(rawLogPath, { flags: 'a' });
-
 const combinedFeedServer = net.createServer((socket) => {
   let clientIp = socket.remoteAddress;
   
@@ -53,9 +49,6 @@ const combinedFeedServer = net.createServer((socket) => {
 
   socket.on("data", async (data) => {
     const raw = data.toString();
-    
-    // Log raw data
-    rawLogStream.write(`[${new Date().toISOString()}] ${clientIp}: ${raw}\n`);
     
     // Split messages by ^ delimiter
     const messages = raw.split('^').filter(msg => msg.trim() !== '');
@@ -120,39 +113,7 @@ app.get('/latest', (req, res) => {
 });
 
 app.get('/raw-logs', (req, res) => {
-  if (!fs.existsSync(rawLogPath)) {
-    return res.status(404).json({ error: 'No log data available yet' });
-  }
-  
-  const today = new Date().toISOString().split('T')[0];
-  const readStream = fs.createReadStream(rawLogPath, { encoding: 'utf8' });
-  
-  res.setHeader('Content-Type', 'text/plain');
-  
-  let buffer = '';
-  
-  readStream.on('data', (chunk) => {
-    buffer += chunk;
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
-    
-    lines.forEach(line => {
-      if (line.includes(today)) {
-        res.write(line + '\n');
-      }
-    });
-  });
-  
-  readStream.on('end', () => {
-    if (buffer && buffer.includes(today)) {
-      res.write(buffer);
-    }
-    res.end();
-  });
-  
-  readStream.on('error', () => {
-    res.status(500).json({ error: 'Failed to read log file' });
-  });
+  res.status(410).json({ error: 'Raw logging disabled' });
 });
 
 app.get('/', (req, res) => {
