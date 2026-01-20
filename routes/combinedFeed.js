@@ -19,6 +19,10 @@ const { broadcastEnerData } = require("./ener-websocket");
 const combinedFeedPort = process.env.PORT || 9000;
 let latestTrackingData = null;
 
+// Raw data logger
+const rawLogPath = path.join(__dirname, '..', 'raw_data.log');
+const rawLogStream = fs.createWriteStream(rawLogPath, { flags: 'a' });
+
 const combinedFeedServer = net.createServer((socket) => {
   let clientIp = socket.remoteAddress;
   
@@ -50,40 +54,36 @@ const combinedFeedServer = net.createServer((socket) => {
   socket.on("data", async (data) => {
     const raw = data.toString();
     
+    // Log raw data
+    rawLogStream.write(`[${new Date().toISOString()}] ${clientIp}: ${raw}\n`);
+    
     // Split messages by ^ delimiter
     const messages = raw.split('^').filter(msg => msg.trim() !== '');
     
     logToConsole("combinedFeed","info", `Received ${messages.length} messages`);
     
-    // Process in chunks to handle large volumes
-    const CHUNK_SIZE = 100;
-    for (let i = 0; i < messages.length; i += CHUNK_SIZE) {
-      const chunk = messages.slice(i, i + CHUNK_SIZE);
-      
-      const processPromises = chunk.map(async (message) => {
-        try {
-          const parsed = parseCombinedFeedMessage(message);
-          latestTrackingData = parsed;
+    // Process messages sequentially - broadcast as they come in
+    for (const message of messages) {
+      try {
+        const parsed = parseCombinedFeedMessage(message);
+        latestTrackingData = parsed;
 
-          // Run DB update and broadcasts in parallel
-          await Promise.allSettled([
-            updateVehicleData(parsed),
-            broadcastEnerData(parsed),
-            Promise.resolve().then(() => {
-              combinedFeedwss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                  client.send(JSON.stringify(parsed));
-                }
-              });
-            })
-          ]);
-        } catch (err) {
-          logToConsole("combinedFeed","error", `Failed to parse message: ${err.message}`);
-        }
-      });
-      
-      // Wait for chunk to complete before next chunk
-      await Promise.allSettled(processPromises);
+        // Broadcast first (order matters), then DB update
+        await broadcastEnerData(parsed);
+        
+        combinedFeedwss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(parsed));
+          }
+        });
+        
+        // DB update can happen after broadcast
+        updateVehicleData(parsed).catch(err => {
+          logToConsole("combinedFeed","error", `DB update failed: ${err.message}`);
+        });
+      } catch (err) {
+        logToConsole("combinedFeed","error", `Failed to parse message: ${err.message}`);
+      }
     }
     
     logToConsole("combinedFeed","info", `Completed processing ${messages.length} messages`);
@@ -113,7 +113,39 @@ app.get('/latest', (req, res) => {
 });
 
 app.get('/raw-logs', (req, res) => {
-  res.status(410).json({ error: 'Raw logging disabled' });
+  if (!fs.existsSync(rawLogPath)) {
+    return res.status(404).json({ error: 'No log data available yet' });
+  }
+  
+  const today = new Date().toISOString().split('T')[0];
+  const readStream = fs.createReadStream(rawLogPath, { encoding: 'utf8' });
+  
+  res.setHeader('Content-Type', 'text/plain');
+  
+  let buffer = '';
+  
+  readStream.on('data', (chunk) => {
+    buffer += chunk;
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    
+    lines.forEach(line => {
+      if (line.includes(today)) {
+        res.write(line + '\n');
+      }
+    });
+  });
+  
+  readStream.on('end', () => {
+    if (buffer && buffer.includes(today)) {
+      res.write(buffer);
+    }
+    res.end();
+  });
+  
+  readStream.on('error', () => {
+    res.status(500).json({ error: 'Failed to read log file' });
+  });
 });
 
 app.get('/', (req, res) => {

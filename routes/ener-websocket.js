@@ -70,21 +70,24 @@ async function processQueue() {
 
 async function broadcastEnerData(trackingData) {
   try {
+    // Check if this vehicle belongs to ENER-0001 account
     const result = await pool.query(
-      'SELECT account_number FROM vehicles WHERE (ip_address = $1 OR reg = $2) AND account_number = $3',
-      [trackingData.Pocsagstr, trackingData.Plate, 'ENER-0001']
+      'SELECT account_number FROM vehicles WHERE (ip_address = $1 OR reg = $2 OR plate = $3) AND account_number = $4',
+      [trackingData.Pocsagstr, trackingData.Plate, trackingData.Plate, 'ENER-0001']
     );
     
     if (result.rows.length > 0) {
+      // Broadcast ALL data for matching vehicles - regardless of what gets saved to DB
       const mappedData = mapEnerData(trackingData);
       
       // Add to queue for guaranteed delivery
       messageQueue.push({ mappedData });
       
-      // Process queue
-      await processQueue();
+      // Process queue immediately
+      processQueue();
     }
   } catch (err) {
+    // Log error but don't throw - we don't want DB issues to block broadcasts
     console.error('ENER broadcast error:', err);
   }
 }
