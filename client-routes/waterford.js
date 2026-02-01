@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
        fuel_probe_1_temperature, fuel_probe_1_level_percentage, 
        cost_code, color_codes, client_notes, updated_at
        FROM vehicles WHERE account_number = $1 
-       ORDER BY COALESCE(loctime, created_at, NOW()) DESC`,
+       ORDER BY loctime DESC NULLS LAST`,
       ['WACA-0001']
     );
     
