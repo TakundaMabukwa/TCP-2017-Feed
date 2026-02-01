@@ -14,6 +14,7 @@ const { parseCombinedFeedMessage } = require("../helpers/parse-tracking-message"
 const { isValveOpen } = require("../helpers/tcp-valve");
 const { updateVehicleData } = require("../helpers/database-helper");
 const { broadcastEnerData } = require("./ener-websocket");
+const { broadcastWacaData } = require("./waca-websocket");
 // import { logToConsole } from "../helpers/logger";
 
 const combinedFeedPort = process.env.PORT || 9000;
@@ -70,6 +71,7 @@ const combinedFeedServer = net.createServer((socket) => {
 
         // Broadcast first (order matters), then DB update
         await broadcastEnerData(parsed);
+        await broadcastWacaData(parsed);
         
         combinedFeedwss.clients.forEach((client) => {
           if (client.readyState === WebSocket.OPEN) {
@@ -107,6 +109,7 @@ const app = express();
 app.use(express.json());
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/energyrite-sites', require('../client-routes/energy-rite'));
+app.use('/api/waterford-sites', require('../client-routes/waterford'));
 
 app.get('/latest', (req, res) => {
   res.json(latestTrackingData);
