@@ -13,8 +13,9 @@ const { ALLOWED_IPS } = require("../helpers/allowed-ips");
 const { parseCombinedFeedMessage } = require("../helpers/parse-tracking-message");
 const { isValveOpen } = require("../helpers/tcp-valve");
 const { updateVehicleData } = require("../helpers/database-helper");
-const { broadcastEnerData } = require("./ener-websocket");
-const { broadcastWacaData } = require("./waca-websocket");
+const { broadcastEnerData } = require("./ener-websocket"); //energyrite websocket
+const { broadcastWacaData } = require("./waca-websocket"); //waterford websocket
+const { broadcastEpscData } = require("./epsc-websocket"); //epsc websocket
 // import { logToConsole } from "../helpers/logger";
 
 const combinedFeedPort = process.env.PORT || 9000;
@@ -72,6 +73,7 @@ const combinedFeedServer = net.createServer((socket) => {
         // Broadcast first (order matters), then DB update
         await broadcastEnerData(parsed);
         await broadcastWacaData(parsed);
+        await broadcastEpscData(parsed);
         
         combinedFeedwss.clients.forEach((client) => {
           if (client.readyState === WebSocket.OPEN) {
