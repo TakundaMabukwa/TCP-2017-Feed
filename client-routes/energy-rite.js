@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
        fuel_probe_1_temperature, fuel_probe_1_level_percentage, 
        cost_code, color_codes, client_notes, updated_at
        FROM vehicles WHERE account_number = $1 
-       ORDER BY loctime DESC LIMIT 100`,
+       ORDER BY loctime DESC LIMIT 200`,
       ['ENER-0001']
     );
     
