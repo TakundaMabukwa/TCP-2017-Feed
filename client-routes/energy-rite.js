@@ -112,7 +112,7 @@ router.get('/:plate', async (req, res) => {
 // Update vehicle by id
 router.patch('/:id', async (req, res) => {
   try {
-    const { plate, reg, ip_address, cost_code, color_codes, client_notes } = req.body;
+    const { plate, reg, ip_address, cost_code, color_codes, client_notes, status, loctime, geozone } = req.body;
     const fields = [];
     const values = [];
     let paramCount = 1;
@@ -146,6 +146,21 @@ router.patch('/:id', async (req, res) => {
       fields.push(`client_notes = $${paramCount++}`);
       values.push(client_notes);
     }
+
+    if (status !== undefined) {
+      fields.push(`status = $${paramCount++}`);
+      values.push(status);
+    }
+
+    if (loctime !== undefined) {
+      fields.push(`loctime = $${paramCount++}`);
+      values.push(loctime);
+    }
+
+    if (geozone !== undefined) {
+      fields.push(`geozone = $${paramCount++}`);
+      values.push(geozone);
+    }
     
     if (fields.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -156,8 +171,9 @@ router.patch('/:id', async (req, res) => {
     
     const result = await pool.query(
       `UPDATE vehicles SET ${fields.join(', ')} 
-       WHERE account_number = $${paramCount++} AND id = $${paramCount} 
-       RETURNING id, plate, reg, ip_address, cost_code, color_codes, client_notes, updated_at`,
+       WHERE account_number = $${paramCount++} 
+         AND (id::text = $${paramCount} OR plate = $${paramCount} OR reg = $${paramCount})
+       RETURNING id, plate, reg, ip_address, cost_code, color_codes, client_notes, status, loctime, geozone, updated_at`,
       values
     );
     
