@@ -1,6 +1,13 @@
 const { pool } = require('../config/database');
 const { parseFuelData } = require('./fuel-parser');
 
+function normalizeVehicleKey(value) {
+  return String(value || '')
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .trim();
+}
+
 async function updateVehicleData(trackingData) {
   try {
     // Build dynamic query based on non-empty fields
@@ -76,20 +83,28 @@ async function updateVehicleData(trackingData) {
 
     if (fields.length === 0) return false;
 
-    // First try to find by IP address (Pocsagstr)
-    let result = await pool.query(
-      `UPDATE vehicles SET ${fields.join(', ')} WHERE ip_address = $${paramCount} RETURNING id`,
-      [...values, trackingData.Pocsagstr]
-    );
+    let result = { rowCount: 0 };
 
-    // If no rows updated by IP, try by reg (Plate)
+    if (trackingData.Pocsagstr) {
+      result = await pool.query(
+        `UPDATE vehicles SET ${fields.join(', ')} WHERE ip_address = $${paramCount} RETURNING id`,
+        [...values, trackingData.Pocsagstr]
+      );
+    }
+
+    // If no rows updated by IP, try by normalized reg/plate.
     if (result.rowCount === 0 && trackingData.Plate) {
+      const normalizedPlate = normalizeVehicleKey(trackingData.Plate);
       fields.push(`ip_address = $${paramCount++}`);
       values.push(trackingData.Pocsagstr);
       
       result = await pool.query(
-        `UPDATE vehicles SET ${fields.join(', ')} WHERE reg = $${paramCount} RETURNING id`,
-        [...values, trackingData.Plate]
+        `UPDATE vehicles
+         SET ${fields.join(', ')}
+         WHERE regexp_replace(UPPER(COALESCE(reg, '')), '\s+', '', 'g') = $${paramCount}
+            OR regexp_replace(UPPER(COALESCE(plate, '')), '\s+', '', 'g') = $${paramCount}
+         RETURNING id`,
+        [...values, normalizedPlate]
       );
     }
 

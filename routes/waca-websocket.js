@@ -10,6 +10,13 @@ const wss = new WebSocket.Server({ server });
 const messageQueue = [];
 let isProcessingQueue = false;
 
+function normalizeVehicleKey(value) {
+  return String(value || '')
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .trim();
+}
+
 function mapWacaData(trackingData) {
   const fuelData = parseFuelData(trackingData.FuelData);
   
@@ -70,9 +77,16 @@ async function processQueue() {
 
 async function broadcastWacaData(trackingData) {
   try {
+    const normalizedPlate = normalizeVehicleKey(trackingData.Plate);
     const result = await pool.query(
-      'SELECT account_number FROM vehicles WHERE (ip_address = $1 OR reg = $2) AND account_number = $3',
-      [trackingData.Pocsagstr, trackingData.Plate, 'WACA-0001']
+      `SELECT account_number
+       FROM vehicles
+       WHERE (
+         ip_address = $1
+         OR regexp_replace(UPPER(COALESCE(reg, '')), '\s+', '', 'g') = $2
+         OR regexp_replace(UPPER(COALESCE(plate, '')), '\s+', '', 'g') = $2
+       ) AND account_number = $3`,
+      [trackingData.Pocsagstr, normalizedPlate, 'WACA-0001']
     );
     
     if (result.rows.length > 0) {
