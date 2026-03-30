@@ -1,6 +1,6 @@
 BEGIN;
 
-WITH wanted(reg) AS (
+WITH wanted(plate) AS (
   VALUES
     ('LS38WYGP'),
     ('FM23CWGP'),
@@ -98,22 +98,34 @@ WITH wanted(reg) AS (
     ('MG45YNGP'),
     ('CP09PGGP'),
     ('LD13PHGP')
-),
-missing AS (
-  SELECT wanted.reg
-  FROM wanted
-  LEFT JOIN vehicles v
-    ON regexp_replace(UPPER(COALESCE(v.reg, '')), '\s+', '', 'g') = wanted.reg
-    OR regexp_replace(UPPER(COALESCE(v.plate, '')), '\s+', '', 'g') = wanted.reg
-  WHERE v.id IS NULL
 )
-INSERT INTO vehicles (plate, reg, account_number, created_at)
-SELECT reg, reg, 'WACA-0001', NOW()
-FROM missing;
 
-SELECT id, plate, reg, account_number
-FROM vehicles
-WHERE account_number = 'WACA-0001'
-ORDER BY reg;
+-- Remove WATE-0001 lookup rows that are no longer in the Waterford list.
+DELETE FROM public.energyrite_vehicle_lookup evl
+WHERE evl.cost_code = 'WATE-0001'
+  AND UPPER(COALESCE(evl.plate, '')) NOT IN (
+    SELECT plate FROM wanted
+  );
+
+-- Add missing Waterford rows.
+INSERT INTO public.energyrite_vehicle_lookup (plate, cost_code, created_at)
+SELECT wanted.plate, 'WATE-0001', NOW()
+FROM wanted
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM public.energyrite_vehicle_lookup evl
+  WHERE UPPER(COALESCE(evl.plate, '')) = wanted.plate
+);
+
+-- Ensure any existing desired rows carry the right cost code.
+UPDATE public.energyrite_vehicle_lookup evl
+SET cost_code = 'WATE-0001'
+FROM wanted
+WHERE UPPER(COALESCE(evl.plate, '')) = wanted.plate;
+
+SELECT id, plate, cost_code, created_at
+FROM public.energyrite_vehicle_lookup
+WHERE cost_code = 'WATE-0001'
+ORDER BY plate;
 
 COMMIT;
