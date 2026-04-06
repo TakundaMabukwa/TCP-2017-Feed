@@ -9,20 +9,27 @@ const wss = new WebSocket.Server({ server });
 const messageQueue = [];
 let isProcessingQueue = false;
 
+function normalizeVehicleKey(value) {
+  return String(value || '')
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .trim();
+}
+
 async function processQueue() {
   if (isProcessingQueue || messageQueue.length === 0) return;
-  
+
   isProcessingQueue = true;
-  
+
   while (messageQueue.length > 0) {
     const { data } = messageQueue.shift();
     const sends = [];
-    
+
     wss.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         sends.push(
-          new Promise((resolve) => {
-            client.send(JSON.stringify(data), (err) => {
+          new Promise(resolve => {
+            client.send(JSON.stringify(data), err => {
               if (err) console.error('WS send error:', err);
               resolve();
             });
@@ -30,44 +37,48 @@ async function processQueue() {
         );
       }
     });
-    
+
     await Promise.all(sends);
   }
-  
+
   isProcessingQueue = false;
 }
 
 async function broadcastEpscData(trackingData) {
   try {
-    // Check if this vehicle belongs to EPSC-0001 account
+    const normalizedPlate = normalizeVehicleKey(trackingData.Plate);
+
     const result = await pool.query(
-      'SELECT account_number FROM vehicles WHERE (ip_address = $1 OR reg = $2 OR plate = $3) AND account_number = $4',
-      [trackingData.Pocsagstr, trackingData.Plate, trackingData.Plate, 'EPSC-0001']
+      `SELECT account_number
+       FROM vehicles
+       WHERE (
+         ip_address = $1
+         OR regexp_replace(UPPER(COALESCE(reg, '')), '\\s+', '', 'g') = $2
+         OR regexp_replace(UPPER(COALESCE(plate, '')), '\\s+', '', 'g') = $2
+       ) AND account_number = $3`,
+      [trackingData.Pocsagstr, normalizedPlate, 'EPSC-0001']
     );
-    
+
     if (result.rows.length > 0) {
-      // Send data as is - no mapping or transformation
+      // Send data exactly as received. No EPSC-specific mapping or fuel parsing.
       messageQueue.push({ data: trackingData });
-      
-      // Process queue immediately
-      processQueue();
+      await processQueue();
     }
   } catch (err) {
-    // Log error but don't throw - we don't want DB issues to block broadcasts
     console.error('EPSC broadcast error:', err);
   }
 }
 
-wss.on('connection', (ws) => {
+wss.on('connection', ws => {
   console.log('EPSC-0001 WebSocket client connected');
-  
+
   ws.on('close', () => {
     console.log('EPSC-0001 WebSocket client disconnected');
   });
 });
 
 server.listen(8092, () => {
-  console.log('⚡ EPSC-0001 WebSocket server running on port 8092');
+  console.log('EPSC-0001 WebSocket server running on port 8092');
 });
 
 module.exports = { broadcastEpscData, server };
