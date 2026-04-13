@@ -40,7 +40,9 @@ async function getEnergyriteData() {
       `SELECT plate, reg, speed, latitude, longitude, pocsagstr, ip_address, 
        mileage, geozone, status, fueldata, loctime, 
        fuel_probe_1_level, fuel_probe_1_volume_in_tank, 
-       fuel_probe_1_temperature, fuel_probe_1_level_percentage
+       fuel_probe_1_temperature, fuel_probe_1_level_percentage,
+       fuel_probe_2_level, fuel_probe_2_volume_in_tank,
+       fuel_probe_2_temperature, fuel_probe_2_level_percentage
        FROM vehicles WHERE account_number = $1 
        ORDER BY loctime DESC LIMIT 100`,
       ['ENER-0001']
@@ -64,6 +66,10 @@ async function getEnergyriteData() {
       fuel_probe_1_volume_in_tank: row.fuel_probe_1_volume_in_tank || 0,
       fuel_probe_1_temperature: row.fuel_probe_1_temperature || 0,
       fuel_probe_1_level_percentage: row.fuel_probe_1_level_percentage || 0,
+      fuel_probe_2_level: row.fuel_probe_2_level || 0,
+      fuel_probe_2_volume_in_tank: row.fuel_probe_2_volume_in_tank || 0,
+      fuel_probe_2_temperature: row.fuel_probe_2_temperature || 0,
+      fuel_probe_2_level_percentage: row.fuel_probe_2_level_percentage || 0,
       message_type: 405
     }));
     

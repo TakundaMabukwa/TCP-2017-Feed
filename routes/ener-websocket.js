@@ -35,6 +35,10 @@ function mapEnerData(trackingData) {
     data.fuel_probe_1_volume_in_tank = fuelData.fuel_probe_1_volume_in_tank;
     data.fuel_probe_1_temperature = fuelData.fuel_probe_1_temperature;
     data.fuel_probe_1_level_percentage = fuelData.fuel_probe_1_level_percentage;
+    data.fuel_probe_2_level = fuelData.fuel_probe_2_level;
+    data.fuel_probe_2_volume_in_tank = fuelData.fuel_probe_2_volume_in_tank;
+    data.fuel_probe_2_temperature = fuelData.fuel_probe_2_temperature;
+    data.fuel_probe_2_level_percentage = fuelData.fuel_probe_2_level_percentage;
   }
   
   return data;

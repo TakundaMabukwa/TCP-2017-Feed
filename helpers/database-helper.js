@@ -59,17 +59,23 @@ async function updateVehicleData(trackingData) {
       // Parse fuel data and add individual fields
       const parsedFuel = parseFuelData(trackingData.FuelData);
       if (parsedFuel) {
-        fields.push(`fuel_probe_1_level = $${paramCount++}`);
-        values.push(parsedFuel.fuel_probe_1_level);
-        
-        fields.push(`fuel_probe_1_volume_in_tank = $${paramCount++}`);
-        values.push(parsedFuel.fuel_probe_1_volume_in_tank);
-        
-        fields.push(`fuel_probe_1_temperature = $${paramCount++}`);
-        values.push(parsedFuel.fuel_probe_1_temperature);
-        
-        fields.push(`fuel_probe_1_level_percentage = $${paramCount++}`);
-        values.push(parsedFuel.fuel_probe_1_level_percentage);
+        const fuelFields = [
+          'fuel_probe_1_level',
+          'fuel_probe_1_volume_in_tank',
+          'fuel_probe_1_temperature',
+          'fuel_probe_1_level_percentage',
+          'fuel_probe_2_level',
+          'fuel_probe_2_volume_in_tank',
+          'fuel_probe_2_temperature',
+          'fuel_probe_2_level_percentage'
+        ];
+
+        for (const fieldName of fuelFields) {
+          if (parsedFuel[fieldName] !== undefined) {
+            fields.push(`${fieldName} = $${paramCount++}`);
+            values.push(parsedFuel[fieldName]);
+          }
+        }
       }
     }
     if (trackingData.DriverName) {

@@ -21,7 +21,9 @@ router.get('/', async (req, res) => {
       `SELECT id, plate, reg, speed, latitude, longitude, ip_address, pocsagstr, 
        mileage, geozone, status, fueldata, loctime, 
        fuel_probe_1_level, fuel_probe_1_volume_in_tank, 
-       fuel_probe_1_temperature, fuel_probe_1_level_percentage, 
+       fuel_probe_1_temperature, fuel_probe_1_level_percentage,
+       fuel_probe_2_level, fuel_probe_2_volume_in_tank,
+       fuel_probe_2_temperature, fuel_probe_2_level_percentage,
        cost_code, color_codes, client_notes, updated_at
        FROM vehicles WHERE account_number = $1 
        ORDER BY loctime DESC NULLS LAST`,
@@ -47,6 +49,10 @@ router.get('/', async (req, res) => {
       fuel_probe_1_volume_in_tank: row.fuel_probe_1_volume_in_tank || 0,
       fuel_probe_1_temperature: row.fuel_probe_1_temperature || 0,
       fuel_probe_1_level_percentage: row.fuel_probe_1_level_percentage || 0,
+      fuel_probe_2_level: row.fuel_probe_2_level || 0,
+      fuel_probe_2_volume_in_tank: row.fuel_probe_2_volume_in_tank || 0,
+      fuel_probe_2_temperature: row.fuel_probe_2_temperature || 0,
+      fuel_probe_2_level_percentage: row.fuel_probe_2_level_percentage || 0,
       message_type: 405,
       cost_code: row.cost_code || null,
       color_codes: row.color_codes || {},
@@ -69,6 +75,8 @@ router.get('/:plate', async (req, res) => {
        mileage, geozone, status, fueldata, loctime, 
        fuel_probe_1_level, fuel_probe_1_volume_in_tank, 
        fuel_probe_1_temperature, fuel_probe_1_level_percentage,
+       fuel_probe_2_level, fuel_probe_2_volume_in_tank,
+       fuel_probe_2_temperature, fuel_probe_2_level_percentage,
        cost_code, color_codes, client_notes, updated_at
        FROM vehicles WHERE account_number = $1 AND (plate = $2 OR reg = $2)`,
       ['WACA-0001', req.params.plate]
@@ -98,6 +106,10 @@ router.get('/:plate', async (req, res) => {
       fuel_probe_1_volume_in_tank: row.fuel_probe_1_volume_in_tank || 0,
       fuel_probe_1_temperature: row.fuel_probe_1_temperature || 0,
       fuel_probe_1_level_percentage: row.fuel_probe_1_level_percentage || 0,
+      fuel_probe_2_level: row.fuel_probe_2_level || 0,
+      fuel_probe_2_volume_in_tank: row.fuel_probe_2_volume_in_tank || 0,
+      fuel_probe_2_temperature: row.fuel_probe_2_temperature || 0,
+      fuel_probe_2_level_percentage: row.fuel_probe_2_level_percentage || 0,
       message_type: 405,
       cost_code: row.cost_code || null,
       color_codes: row.color_codes || {},
