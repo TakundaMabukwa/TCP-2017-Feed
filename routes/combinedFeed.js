@@ -16,10 +16,12 @@ const { updateVehicleData } = require("../helpers/database-helper");
 const { broadcastEnerData } = require("./ener-websocket"); //energyrite websocket
 const { broadcastWacaData } = require("./waca-websocket"); //waterford websocket
 const { broadcastEpscData } = require("./epsc-websocket"); //epsc websocket
+const { broadcastRawFeedData } = require("./raw-feed-websocket"); //raw full-feed websocket
 // import { logToConsole } from "../helpers/logger";
 
 const combinedFeedPort = process.env.PORT || 9000;
 let latestTrackingData = null;
+let latestRawTrackingData = null;
 
 // Raw data logger
 const rawLogPath = path.join(__dirname, '..', 'raw_data.log');
@@ -55,9 +57,11 @@ const combinedFeedServer = net.createServer((socket) => {
 
   socket.on("data", async (data) => {
     const raw = data.toString();
+    latestRawTrackingData = raw;
     
     // Log raw data
     rawLogStream.write(`[${new Date().toISOString()}] ${clientIp}: ${raw}\n`);
+    await broadcastRawFeedData(raw);
     
     // Split messages by ^ delimiter
     const messages = raw.split('^').filter(msg => msg.trim() !== '');
@@ -115,6 +119,10 @@ app.use('/api/waterford-sites', require('../client-routes/waterford'));
 
 app.get('/latest', (req, res) => {
   res.json(latestTrackingData);
+});
+
+app.get('/latest-raw', (req, res) => {
+  res.type('text/plain').send(latestRawTrackingData || '');
 });
 
 app.get('/raw-logs', (req, res) => {
